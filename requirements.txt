@@ -1,0 +1,6 @@
+# 외부 의존성 없음 — Python 표준 라이브러리만 사용합니다.
+# 실행 환경: Python 3.13 (3.10+ 호환)
+#
+# 전처리(preprocess/), 검색·생성(baseline/), API 서버(baseline/server.py) 전부
+# stdlib(http.server, urllib, json, csv, re, html.parser, multiprocessing 등)로 구현되어
+# pip install 할 패키지가 없습니다. 이 파일은 재현성 명시를 위해 유지합니다.

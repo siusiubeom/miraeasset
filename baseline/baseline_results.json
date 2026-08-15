@@ -1,0 +1,448 @@
+{
+ "summary": {
+  "topk": 10,
+  "n_questions": 11,
+  "route_acc": 1.0,
+  "doc_hit_at_k": 0.9090909090909091,
+  "evidence_hit_at_k": 1.0,
+  "mean_latency_sec": 2.47,
+  "max_latency_sec": 5.23
+ },
+ "results": [
+  {
+   "qid": "Q01",
+   "type": "추출/Closed",
+   "q": "삼성전자의 2025년 연결기준 매출액은 얼마인가?",
+   "routed": [
+    "삼성전자"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 1,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "손익계산서|요약재무정보",
+    "연결"
+   ],
+   "unanswerable": false,
+   "latency_sec": 3.84,
+   "top3": [
+    {
+     "chunk_id": "periodic_20260310002820#0342",
+     "score": 33.38,
+     "section": "사 업 보 고 서 > 목 차 > IV. 이사의 경영진단 및 분석의견 > 2. 개요"
+    },
+    {
+     "chunk_id": "periodic_20250311001085#0333",
+     "score": 26.95,
+     "section": "사 업 보 고 서 > 목 차 > IV. 이사의 경영진단 및 분석의견"
+    },
+    {
+     "chunk_id": "periodic_20250515001922#0043",
+     "score": 26.07,
+     "section": "분 기 보 고 서 > 목 차 > III. 재무에 관한 사항 > 1. 요약재무정보"
+    }
+   ]
+  },
+  {
+   "qid": "Q02",
+   "type": "추출/Closed",
+   "q": "LG에너지솔루션의 2025년 연결기준 영업이익은 얼마인가?",
+   "routed": [
+    "LG에너지솔루션"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 5,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "손익계산서|요약재무정보",
+    "연결"
+   ],
+   "unanswerable": false,
+   "latency_sec": 2.67,
+   "top3": [
+    {
+     "chunk_id": "periodic_20260514001046#0035",
+     "score": 39.64,
+     "section": "분 기 보 고 서 > 목 차 > III. 재무에 관한 사항 > 1. 요약재무정보"
+    },
+    {
+     "chunk_id": "periodic_20250515000407#0034",
+     "score": 39.57,
+     "section": "분 기 보 고 서 > 목 차 > III. 재무에 관한 사항 > 1. 요약재무정보"
+    },
+    {
+     "chunk_id": "periodic_20250814001590#0040",
+     "score": 39.57,
+     "section": "반 기 보 고 서 > 목 차 > III. 재무에 관한 사항 > 1. 요약재무정보"
+    }
+   ]
+  },
+  {
+   "qid": "Q03",
+   "type": "추출/Closed(별칭)",
+   "q": "현대차의 2025년 연결기준 매출액은 얼마인가?",
+   "routed": [
+    "현대차"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 1,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "손익계산서|요약재무정보",
+    "연결"
+   ],
+   "unanswerable": false,
+   "latency_sec": 3.84,
+   "top3": [
+    {
+     "chunk_id": "periodic_20260318001394#0044",
+     "score": 32.33,
+     "section": "사 업 보 고 서 > 목 차 > II. 사업의 내용 > 1. (제조서비스업)사업의 개요"
+    },
+    {
+     "chunk_id": "periodic_20251114002658#0013",
+     "score": 32.2,
+     "section": "분 기 보 고 서 > 목 차 > II. 사업의 내용 > 1. (제조서비스업)사업의 개요"
+    },
+    {
+     "chunk_id": "periodic_20250515001159#0013",
+     "score": 30.95,
+     "section": "분 기 보 고 서 > 목 차 > II. 사업의 내용 > 1. (제조서비스업)사업의 개요"
+    }
+   ]
+  },
+  {
+   "qid": "Q04",
+   "type": "추출/Open",
+   "q": "시프트업의 2024년 사업보고서를 기준으로 주요 사업 내용을 정리해줘",
+   "routed": [
+    "시프트업"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 1,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "사업의 개요|주요 제품",
+    "사업보고서"
+   ],
+   "unanswerable": false,
+   "latency_sec": 0.68,
+   "top3": [
+    {
+     "chunk_id": "periodic_20250319000952#0015",
+     "score": 50.78,
+     "section": "사 업 보 고 서 > 목 차 > II. 사업의 내용 > 2. 주요 제품 및 서비스"
+    },
+    {
+     "chunk_id": "periodic_20260318001672#0019",
+     "score": 48.13,
+     "section": "사 업 보 고 서 > 목 차 > II. 사업의 내용 > 2. 주요 제품 및 서비스"
+    },
+    {
+     "chunk_id": "periodic_20250319000952#0017",
+     "score": 41.15,
+     "section": "사 업 보 고 서 > 목 차 > II. 사업의 내용 > 2. 주요 제품 및 서비스"
+    }
+   ]
+  },
+  {
+   "qid": "Q05",
+   "type": "비교/Closed",
+   "q": "2차전지 기업 삼성SDI와 에코프로비엠 중 2025년 매출액이 더 큰 기업은 어디인가?",
+   "routed": [
+    "에코프로비엠",
+    "삼성SDI"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 7,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "손익계산서|요약재무정보"
+   ],
+   "unanswerable": false,
+   "latency_sec": 5.23,
+   "top3": [
+    {
+     "chunk_id": "periodic_20240312000853#0522",
+     "score": 39.46,
+     "section": "감 사 보 고 서 > 목 차 > (첨부)연 결 재 무 제 표 > 주석"
+    },
+    {
+     "chunk_id": "periodic_20240312000853#0128",
+     "score": 37.21,
+     "section": "사 업 보 고 서 > 목 차 > III. 재무에 관한 사항 > 32. 특수관계자 (연결)"
+    },
+    {
+     "chunk_id": "periodic_20241114002265#0095",
+     "score": 34.01,
+     "section": "분 기 보 고 서 > 목 차 > III. 재무에 관한 사항 > 30. 특수관계자 (연결)"
+    }
+   ]
+  },
+  {
+   "qid": "Q06",
+   "type": "정리/Open",
+   "q": "셀트리온이 2025년에 결정한 자기주식 취득 내역을 정리해줘",
+   "routed": [
+    "셀트리온"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 4,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "자기주식"
+   ],
+   "unanswerable": false,
+   "latency_sec": 3.88,
+   "top3": [
+    {
+     "chunk_id": "major_20250423000383#0004",
+     "score": 42.8,
+     "section": "주요사항보고서(자기주식 처분 결정) > 자기주식 처분 결정"
+    },
+    {
+     "chunk_id": "major_20250723000327#0004",
+     "score": 42.8,
+     "section": "주요사항보고서(자기주식 처분 결정) > 자기주식 처분 결정"
+    },
+    {
+     "chunk_id": "major_20251022000239#0004",
+     "score": 42.8,
+     "section": "주요사항보고서(자기주식 처분 결정) > 자기주식 처분 결정"
+    }
+   ]
+  },
+  {
+   "qid": "Q07",
+   "type": "정정연결",
+   "q": "삼성전자가 2025년 7월 체결한 반도체 위탁생산 공급계약의 계약상대는 어디인가?",
+   "routed": [
+    "삼성전자"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 1,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "공급계약"
+   ],
+   "unanswerable": false,
+   "latency_sec": 0.14,
+   "top3": [
+    {
+     "chunk_id": "exchange_20250731800028#0001",
+     "score": 105.3,
+     "section": "【삼성전자】 [기재정정]단일판매ㆍ공급계약체결 — 접수 20250731 (20250731800028) 〔정정본〕"
+    },
+    {
+     "chunk_id": "periodic_20260310002820#0564",
+     "score": 64.92,
+     "section": "사 업 보 고 서 > 목 차 > XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+    },
+    {
+     "chunk_id": "periodic_20260515002181#0366",
+     "score": 64.92,
+     "section": "분 기 보 고 서 > 목 차 > XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 1. 공시내용 진행 및 변경사항"
+    }
+   ]
+  },
+  {
+   "qid": "Q08",
+   "type": "복합/이벤트",
+   "q": "삼성전자가 2024년 11월에 결정한 자기주식 취득 규모는 얼마인가?",
+   "routed": [
+    "삼성전자"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 1,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "자기주식"
+   ],
+   "unanswerable": false,
+   "latency_sec": 0.12,
+   "top3": [
+    {
+     "chunk_id": "major_20241118000328#0005",
+     "score": 63.66,
+     "section": "주요사항보고서(자기주식 취득 결정) > 정 정 신 고 (보고) > 자기주식 취득 결정"
+    },
+    {
+     "chunk_id": "major_20250708000011#0005",
+     "score": 60.58,
+     "section": "주요사항보고서(자기주식 취득 결정) > 자기주식 취득 결정"
+    },
+    {
+     "chunk_id": "major_20250218001596#0006",
+     "score": 58.69,
+     "section": "주요사항보고서(자기주식 취득 결정) > 정 정 신 고 (보고) > 자기주식 취득 결정"
+    }
+   ]
+  },
+  {
+   "qid": "Q09",
+   "type": "복합/지분",
+   "q": "알테오젠의 최대주주는 누구인가?",
+   "routed": [
+    "알테오젠"
+   ],
+   "route_ok": true,
+   "doc_hit": false,
+   "doc_rank": null,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "주주에 관한 사항|대량보유|최대주주"
+   ],
+   "unanswerable": false,
+   "latency_sec": 2.56,
+   "top3": [
+    {
+     "chunk_id": "periodic_20260515001517#0244",
+     "score": 25.16,
+     "section": "분 기 보 고 서 > VII. 주주에 관한 사항"
+    },
+    {
+     "chunk_id": "periodic_20260323001596#0338",
+     "score": 25.15,
+     "section": "사 업 보 고 서 > 목 차 > VII. 주주에 관한 사항"
+    },
+    {
+     "chunk_id": "periodic_20250513000785#0225",
+     "score": 24.35,
+     "section": "분 기 보 고 서 > 목 차 > VII. 주주에 관한 사항"
+    }
+   ]
+  },
+  {
+   "qid": "Q10",
+   "type": "복합/계약",
+   "q": "레인보우로보틱스의 최대주주 변경을 수반하는 콜옵션 주주간계약의 콜옵션 권리자는 누구인가?",
+   "routed": [
+    "레인보우로보틱스"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 1,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "주주에 관한 사항|대량보유|최대주주"
+   ],
+   "unanswerable": false,
+   "latency_sec": 1.41,
+   "top3": [
+    {
+     "chunk_id": "exchange_20230315902432#0001",
+     "score": 188.88,
+     "section": "【레인보우로보틱스】 [기재정정]투자판단관련주요경영사항(최대주주 변경을 수반하는 콜옵션 조건이 포함된 주주간계약의 체결) — 접수 20230315 (20230315"
+    },
+    {
+     "chunk_id": "exchange_20230315902432#0000",
+     "score": 159.27,
+     "section": ""
+    },
+    {
+     "chunk_id": "holding_20250319000659#0020",
+     "score": 105.68,
+     "section": "주식등의 대량보유상황보고서 > 제2부 대량보유내역 > 2. 보유주식등에 관한 계약 > 나. 계약 내용"
+    }
+   ]
+  },
+  {
+   "qid": "Q11",
+   "type": "수주/Open",
+   "q": "한화오션이 2025년에 공시한 단일판매·공급계약 체결 내역을 정리해줘",
+   "routed": [
+    "한화오션"
+   ],
+   "route_ok": true,
+   "doc_hit": true,
+   "doc_rank": 1,
+   "evidence_hit": true,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [
+    "공급계약"
+   ],
+   "unanswerable": false,
+   "latency_sec": 5.16,
+   "top3": [
+    {
+     "chunk_id": "exchange_20250327801173#0001",
+     "score": 89.21,
+     "section": "【한화오션】 [기재정정]단일판매ㆍ공급계약체결 — 접수 20250327 (20250327801173) 〔정정본〕"
+    },
+    {
+     "chunk_id": "exchange_20250515801193#0001",
+     "score": 87.59,
+     "section": "【한화오션】 [기재정정]단일판매ㆍ공급계약체결 — 접수 20250515 (20250515801193) 〔정정본〕"
+    },
+    {
+     "chunk_id": "exchange_20241115800512#0001",
+     "score": 87.41,
+     "section": "【한화오션】 [기재정정]단일판매ㆍ공급계약체결 — 접수 20241115 (20241115800512) 〔정정본〕"
+    }
+   ]
+  },
+  {
+   "qid": "Q12",
+   "type": "정보한계",
+   "q": "삼성전자의 2026년 3분기 실적 전망은 어떻게 되는가?",
+   "routed": [
+    "삼성전자"
+   ],
+   "route_ok": true,
+   "doc_hit": false,
+   "doc_rank": null,
+   "evidence_hit": false,
+   "both_companies_in_topk": true,
+   "corr_above_orig": true,
+   "active_priors": [],
+   "unanswerable": true,
+   "latency_sec": 0.13,
+   "top3": [
+    {
+     "chunk_id": "periodic_20260515002181#0037",
+     "score": 21.63,
+     "section": "분 기 보 고 서 > 목 차 > II. 사업의 내용 > 7. 기타 참고사항"
+    },
+    {
+     "chunk_id": "periodic_20260515002181#0034",
+     "score": 19.03,
+     "section": "분 기 보 고 서 > 목 차 > II. 사업의 내용 > 7. 기타 참고사항"
+    },
+    {
+     "chunk_id": "periodic_20260310002820#0726",
+     "score": 18.71,
+     "section": "감 사 보 고 서 > 목 차 > (첨부)재 무 제 표 > 주석"
+    }
+   ]
+  }
+ ]
+}
