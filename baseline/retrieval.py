@@ -5,7 +5,7 @@
 - 회사 라우팅: universe.csv의 listed/corp 명 + 수동 별칭으로 질문에서 회사 탐지
 - 회사별 청크 파일(processed/chunks/<listed>.jsonl)만 로드해 BM25 검색
 """
-import csv, json, math, os, re
+import csv, json, math, os, re, sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
@@ -114,7 +114,11 @@ class Retriever:
         self._cache = OrderedDict()  # LRU: listed_name → Bm25Index
         self._cache_max = int(os.environ.get("INDEX_CACHE_MAX", "4"))
         # 정정 링크: 원본 rcept_no → 이를 대체한 정정본 rcept_no 목록
+        # build_report.json이 없으면 링크가 통째로 비고 정정 감점·감지가 조용히 죽는다.
+        # 무증상으로 지나가지 않도록 chain_loaded 플래그로 상류에 전파한다.
         self.superseded = {}
+        self.supersedes = {}   # 정정본 rcept_no → 그것이 정정한 원본 rcept_no 목록
+        self.chain_loaded = False
         rep_path = ROOT / "processed" / "build_report.json"
         if rep_path.exists():
             rep = json.loads(rep_path.read_text(encoding="utf-8"))
@@ -122,6 +126,18 @@ class Retriever:
                 corr_rcept = corr_doc_id.rsplit("_", 1)[-1]
                 for orig in m.get("matched", []):
                     self.superseded.setdefault(orig["rcept_no"], []).append(corr_rcept)
+                    # 역방향: 정정본 → 그것이 정정한 대상. 감점으로 원본이 top-k
+                    # 밖으로 밀려나도 '체인 말단을 취했다'는 판단 근거는 남아야 한다.
+                    self.supersedes.setdefault(corr_rcept, []).append(orig["rcept_no"])
+            self.chain_loaded = bool(self.superseded)
+            if not self.chain_loaded:
+                print(f"[warn] {rep_path} 의 corr_matches에 매칭된 정정 체인이 0건 — "
+                      "정정 감점·정정본 우선 판정이 비활성 상태입니다.", file=sys.stderr)
+        else:
+            print(f"[warn] {rep_path} 없음 — 정정 체인 미로딩. 정정 감점"
+                  f"(SUPERSEDED_PENALTY={SUPERSEDED_PENALTY})과 정정 대체 원본 감지가 "
+                  "동작하지 않습니다. preprocess/build_company_md.py 를 실행해 생성하십시오.",
+                  file=sys.stderr)
 
     def route(self, question: str):
         """질문에 등장하는 회사(1개 이상)를 긴 이름 우선으로 탐지."""
@@ -145,6 +161,7 @@ class Retriever:
         recs = [json.loads(l) for l in path.open(encoding="utf-8")]
         for r in recs:  # 정정으로 대체된 원본임을 청크에 표시 (답변 생성 시에도 활용)
             r["superseded_by"] = self.superseded.get(r["rcept_no"], [])
+            r["supersedes"] = self.supersedes.get(r["rcept_no"], [])
         self._cache[listed] = Bm25Index(recs)
         while len(self._cache) > self._cache_max:
             self._cache.popitem(last=False)

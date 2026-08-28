@@ -1,6 +1,6 @@
 """코퍼스 전체 → 회사별 종합 마크다운 빌드.
 
-산출물 (C:\\mirae\\processed\\):
+산출물 (<repo>/processed/ — MIRAE_PROCESSED 환경변수로 변경 가능):
   docs/<doc_group>/<corp_name>/<doc_id>.md   문서 단위 마크다운 (원문 보존)
   companies/<listed_name>.md                 회사당 1개 종합 파일
                                              (헤더 + 문서목록 + 정정로그 + 전체 본문, 접수일순)
@@ -14,6 +14,7 @@ import argparse
 import csv
 import json
 import multiprocessing as mp
+import os
 import re
 import sys
 import time
@@ -22,8 +23,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from dart_to_md import convert_file, read_text
 
-CORPUS = Path(r"C:\mirae\corpus")
-OUT = Path(r"C:\mirae\processed")
+# 리포지토리 루트 기준 상대경로. 절대경로로 두면 산출물(build_report.json 등)이
+# 리포 밖으로 떨어져 retrieval.py가 정정 체인을 로딩하지 못한다.
+# 원문 raw/가 외부에 있으면 MIRAE_CORPUS / MIRAE_PROCESSED 로 덮어쓸 것.
+ROOT = Path(__file__).resolve().parents[1]
+CORPUS = Path(os.environ.get("MIRAE_CORPUS", ROOT / "corpus"))
+OUT = Path(os.environ.get("MIRAE_PROCESSED", ROOT / "processed"))
 
 _DOCNAME_RE = re.compile(r"<DOCUMENT-NAME[^>]*>([^<]+)</DOCUMENT-NAME>", re.I)
 # 정정본 본문에서 "정정관련(대상) 공시서류 제출일" 필드 탐색
@@ -183,6 +188,13 @@ def main() -> None:
     ap.add_argument("--company", default=None, help="특정 회사만 (corp_name)")
     ap.add_argument("--workers", type=int, default=6)
     args = ap.parse_args()
+
+    # 프리플라이트: raw/가 없으면 변환 결과가 전부 비어 정정 매칭이 0건이 되고,
+    # 그 상태로 산출물(companies/*.md, build_report.json)을 덮어써 기존 빌드를 파괴한다.
+    if not (CORPUS / "raw").is_dir():
+        sys.exit(f"[error] 원문 디렉터리가 없습니다: {CORPUS / 'raw'}\n"
+                 "        MIRAE_CORPUS 로 원문 코퍼스 경로를 지정하십시오. "
+                 "산출물을 덮어쓰지 않고 중단합니다.")
 
     manifest = [json.loads(l) for l in (CORPUS / "manifest.jsonl").open(encoding="utf-8")]
     universe = {r["corp_name"]: r for r in csv.DictReader((CORPUS / "universe.csv").open(encoding="utf-8-sig"))}

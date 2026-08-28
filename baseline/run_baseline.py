@@ -7,7 +7,7 @@
   - doc_hit@k     : top-k 청크 중 기대 문서(rcept_no 집합)에서 나온 것이 있는가
   - evidence_hit@k: top-k 청크 텍스트에 기대 근거(정규식)가 있는가
 """
-import json, re, time
+import json, re, sys, time
 from pathlib import Path
 from retrieval import Retriever
 
@@ -88,8 +88,10 @@ def main():
         hits = res["hits"]
         hit_docs = [h[0]["rcept_no"] for h in hits]
         hit_corps = {h[0]["corp"] for h in hits}
-        # 정정본이 원본보다 위에 랭크되는지 (둘 다 top-k에 있을 때만 판정)
-        corr_order_ok = True
+        # 정정본이 원본보다 위에 랭크되는지 (둘 다 top-k에 있을 때만 판정).
+        # 정정 체인이 로딩되지 않았으면 superseded_by가 전부 비어 무조건 통과처럼
+        # 보이므로, 통과가 아니라 '판정 불가'로 구분해 리포트한다.
+        corr_order_ok = True if ret.chain_loaded else None
         rank_of = {}
         for i, h in enumerate(hits):
             rank_of.setdefault(h[0]["rcept_no"], i)
@@ -114,7 +116,9 @@ def main():
             "top3": [{"chunk_id": h[0]["chunk_id"], "score": round(h[1], 2),
                       "section": h[0]["section_path"][:90]} for h in hits[:3]],
         })
-        print(f"{spec['qid']} route={route_ok} doc_hit={doc_hit} rank={doc_rank} ev={ev_hit} {dt:.1f}s", flush=True)
+        corr_s = "판정불가" if corr_order_ok is None else corr_order_ok
+        print(f"{spec['qid']} route={route_ok} doc_hit={doc_hit} rank={doc_rank} "
+              f"ev={ev_hit} corr={corr_s} {dt:.1f}s", flush=True)
 
     scored = [r for r in results if not r["unanswerable"]]
     summary = {
@@ -125,10 +129,20 @@ def main():
         "evidence_hit_at_k": sum(r["evidence_hit"] for r in scored) / len(scored),
         "mean_latency_sec": round(sum(r["latency_sec"] for r in results) / len(results), 2),
         "max_latency_sec": max(r["latency_sec"] for r in results),
+        # 정정 체인 미로딩 시 corr_above_orig는 전부 None(판정 불가)이며,
+        # 통과율로 집계하면 100%처럼 보이므로 별도 필드로 상태를 남긴다.
+        "corr_chain_loaded": ret.chain_loaded,
+        "corr_above_orig_acc": (
+            None if not ret.chain_loaded
+            else sum(bool(r["corr_above_orig"]) for r in scored) / len(scored)),
     }
     out = {"summary": summary, "results": results}
-    (Path(__file__).parent / "baseline_results.json").write_text(
+    # 기본 파일명은 공유 파일이므로, 인자로 결과 파일명을 지정해 분리할 수 있게 한다.
+    #   python run_baseline.py results_seongmin_baseline.json
+    out_name = sys.argv[1] if len(sys.argv) > 1 else "baseline_results.json"
+    (Path(__file__).parent / out_name).write_text(
         json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"saved: {out_name}")
     print(json.dumps(summary, ensure_ascii=False, indent=1))
 
 
