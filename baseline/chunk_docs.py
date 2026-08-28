@@ -17,7 +17,10 @@ MIN_TAIL = 250  # 이보다 작은 꼬리 청크는 직전 청크에 흡수
 
 DOC_RE = re.compile(
     r'<!-- DOC id=(?P<doc_id>\S+) group=(?P<group>\S+) subtype=(?P<subtype>\S+) '
-    r'rcept_no=(?P<rcept_no>\S+) rcept_dt=(?P<rcept_dt>\S+) correction=(?P<corr>\S+) corp=(?P<corp>\S+) -->')
+    r'rcept_no=(?P<rcept_no>\S+) rcept_dt=(?P<rcept_dt>\S+) correction=(?P<corr>\S+) '
+    # corp 는 공백을 포함할 수 있다(예: 'JYP Ent', 'LS ELECTRIC'). \S+ 로 받으면
+    # 헤더 전체가 매칭 실패해 그 회사 청크가 0건이 된다.
+    r'corp=(?P<corp>.+?) -->')
 HDR_RE = re.compile(r'^(#{1,6}) (.*)$')
 
 

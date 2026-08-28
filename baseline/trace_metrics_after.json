@@ -1,0 +1,251 @@
+{
+ "aggregate": {
+  "label": "after",
+  "n": 13,
+  "boilerplate_pct": 3.1,
+  "boilerplate_pct_excl_fixed": 3.1,
+  "num_density_pct": 10.2,
+  "identifiers_mean": 1.8,
+  "identifiers_below_min": 10,
+  "rejection_rate_pct": 23.1,
+  "fabricated_rejections": 0,
+  "result_ratio_pct": 7.7,
+  "forward_hits_total": 9,
+  "sentences_mean": 3.7,
+  "over_length_count": 0,
+  "subtitle_rate_pct": 53.8
+ },
+ "rows": [
+  {
+   "qid": "A1",
+   "subtitle": "11월 15일 공시된 자기주식 취득 결정 금",
+   "has_subtitle": false,
+   "sentences": 4,
+   "words": 51,
+   "num_density": 17.6,
+   "identifiers": 2,
+   "identifier_list": [
+    "2024년 11월 15일",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "A2",
+   "subtitle": "공급계약 상대방의 공개 여부",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 67,
+   "num_density": 10.4,
+   "identifiers": 3,
+   "identifier_list": [
+    "20250728800035",
+    "2025년 7월",
+    "단일판매ㆍ공급계약체결"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "A3",
+   "subtitle": "2024년 11월 18일 접수 건수",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 44,
+   "num_density": 22.7,
+   "identifiers": 1,
+   "identifier_list": [
+    "2024년 11월 18일"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "B1",
+   "subtitle": "최대주주 지분율 확인",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 53,
+   "num_density": 5.7,
+   "identifiers": 2,
+   "identifier_list": [
+    "사업보고서(2023.12)",
+    "사업보고서(2024.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "B2",
+   "subtitle": "질문은 개인의 생년월일 등 개인정보를 요구한",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 41,
+   "num_density": 2.4,
+   "identifiers": 0,
+   "identifier_list": [],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "C1",
+   "subtitle": "2025년 반도체 부문 영업이익",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 37,
+   "num_density": 8.1,
+   "identifiers": 1,
+   "identifier_list": [
+    "사업보고서(2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "C2",
+   "subtitle": "2025년 삼성전자 회사채 발행 규모",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 28,
+   "num_density": 14.3,
+   "identifiers": 1,
+   "identifier_list": [
+    "사업보고서(2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "C3",
+   "subtitle": "2025년 삼성 계열사 매출액 비교",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 71,
+   "num_density": 15.5,
+   "identifiers": 4,
+   "identifier_list": [
+    "2025년 12월",
+    "2025년 3월",
+    "분기보고서",
+    "사업보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "D1",
+   "subtitle": "질문은 삼성전자의 미래 주가·실적 방향을 요",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 54,
+   "num_density": 5.6,
+   "identifiers": 2,
+   "identifier_list": [
+    "2024-05-16",
+    "분기보고서 (2024.03)"
+   ],
+   "has_rejection": true,
+   "fabricated_rejection": [],
+   "result_ratio": 33.3,
+   "forward_hits": 3,
+   "over_length": false
+  },
+  {
+   "qid": "D2",
+   "subtitle": "질문은 삼성전자의 미래 주가·실적 방향을 요",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 54,
+   "num_density": 5.6,
+   "identifiers": 2,
+   "identifier_list": [
+    "2025-08-14",
+    "반기보고서 (2025.06)"
+   ],
+   "has_rejection": true,
+   "fabricated_rejection": [],
+   "result_ratio": 33.3,
+   "forward_hits": 3,
+   "over_length": false
+  },
+  {
+   "qid": "D3",
+   "subtitle": "질문은 삼성전자의 미래 주가·실적 방향을 요",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 54,
+   "num_density": 5.6,
+   "identifiers": 2,
+   "identifier_list": [
+    "2023-05-15",
+    "분기보고서 (2023.03)"
+   ],
+   "has_rejection": true,
+   "fabricated_rejection": [],
+   "result_ratio": 33.3,
+   "forward_hits": 3,
+   "over_length": false
+  },
+  {
+   "qid": "E1",
+   "subtitle": "2024년 11월 자기주식 취득 결정에서의 ",
+   "has_subtitle": false,
+   "sentences": 4,
+   "words": 61,
+   "num_density": 6.6,
+   "identifiers": 1,
+   "identifier_list": [
+    "2024년 11월"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "E2",
+   "subtitle": "2025년 매출액 조회",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 39,
+   "num_density": 12.8,
+   "identifiers": 3,
+   "identifier_list": [
+    "사업보고서",
+    "사업보고서(2025.12)",
+    "사항 > 1."
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  }
+ ]
+}
