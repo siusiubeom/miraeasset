@@ -33,6 +33,42 @@ _OPINION_RE = re.compile(
     r"좋아질|나빠질|어떻게\s?될|괜찮을까|"
     r"투자\s?의견|매수|매도|목표\s?주가|추천|사도\s?될까|살까")
 
+# 질문 전체가 예측·투자의견은 아니지만 평가 한 줄을 곁들여 달라는 요구
+# ("이 정도면 괜찮은 수준인지 한 줄 평가도"). 통째로 거절하면 사실 부분까지
+# 버리므로, 사실만 답하고 평가 요구는 따로 고지한다.
+# "최대주주의 최대주주의 최대주주" — 지배구조를 2단계 이상 거슬러 오르는 질문.
+# 코퍼스는 70개사 각각의 공시만 보유하므로 상위 주주의 주주는 추적할 수 없다.
+# 막지 않으면 모델이 사슬을 지어낸다(H4: 없는 증여 사실을 날짜까지 붙여 생성).
+_OWNER_TERM_RE = re.compile(r"(최대주주|모회사|지배기업|지주회사)")
+
+
+def owner_hops(question: str) -> int:
+    """지배구조를 몇 단계 거슬러 묻는가.
+
+    "최대주주의 최대주주의 최대주주"는 3단계다. 단계 수를 세지 않으면 모델이
+    두 단계까지만 답하고 값은 세 번째 것을 주는 뒤섞임이 난다(H4).
+    """
+    m = re.findall(r"(?:최대주주|모회사|지배기업|지주회사)\s*의\s*", question or "")
+    return len(m) + 1 if m else (1 if _OWNER_TERM_RE.search(question or "") else 0)
+
+_OPINION_PART_RE = re.compile(
+    r"괜찮은|괜찮나|적정한지|좋은\s?편|나쁜\s?편|어떻게\s?보|어떤가|"
+    r"한\s?줄\s?평|평가(도|해|를)|의견(도|을)|어떤지")
+
+OPINION_PARTIAL_NOTE = (
+    "\n\n※ 요청하신 수준 평가·의견은 제공하지 않습니다. 이 시스템은 공시에 기재된 "
+    "사실만 근거로 답변하며, 적정성 판단은 공시 기재 사항이 아닙니다.")
+
+# 공시 서식의 항목명 — '예상·예정'이 들어가도 전망 표현이 아니다
+_FORM_TERM_RE = re.compile(
+    r"취득\s?예상기간|보유\s?예상기간|처분\s?예상기간|취득\s?예정주식|취득\s?예정금액|"
+    r"처분\s?예정주식|처분\s?예정금액|예정\s?주식수|예상\s?기간|예정일")
+
+# 평가 어휘 — SYSTEM_PROMPT §6이 금지한 표현의 코드 쪽 목록
+_EVAL_WORD_RE = re.compile(
+    r"긍정적|부정적|바람직|우수한|양호한|미흡한|충분한\s?수준|괜찮은\s?수준|"
+    r"높은\s?편|낮은\s?편|매력적|유망|모멘텀|저평가|고평가|해석될\s?수\s?있")
+
 FALLBACK_OPINION = (
     "죄송하지만 미래 실적 전망이나 투자 의견(매수·매도 판단, 주가 예측 등)은 제공할 수 없습니다. "
     "이 시스템은 공시에 기재된 사실만 근거로 답변하며, 공시에는 미래 주가나 미공시 전망 정보가 포함되어 있지 않습니다. "
@@ -259,7 +295,14 @@ EXTRACT_SYSTEM = (
     "기간 중의 흐름을 물으면 잔액으로 답하지 말고, 잔액만 확인된다는 사실을 밝혀라. "
     "같은 절에 증감액이 문장으로 기재되어 있으면 그 문장을 인용하라.\n"
     "7) 다년도 비교 표(제N기/제N-1기 병렬)에서는 질문 연도에 해당하는 기수의 열만 읽는다. "
-    "입력에 '연도 열 판정' 안내가 있으면 그 기수를 따른다.")
+    "입력에 '연도 열 판정' 안내가 있으면 그 기수를 따른다.\n"
+    "8) 질문이 요구한 항목명과 표 행의 항목명이 정확히 일치하는 행만 취한다. 영업이익을 물었으면 "
+    "'영업이익' 또는 '영업이익(손실)' 행만 쓰고, 바로 위아래의 매출액·당기순이익 행을 쓰지 않는다. "
+    "연결과 별도가 다른 표에 있으면 질문이 지정한 쪽만 쓴다. 어느 행에서 뽑았는지 '값:' 줄의 "
+    "기준 칸에 행 이름을 적어라.\n"
+    "9) 값에는 반드시 단위를 붙인다. 표에 '(단위: 백만원)'이 선언돼 있으면 '24,858,075백만원'처럼 "
+    "그 단위를 그대로 붙여라. 단위 없는 숫자만 적지 마라.\n"
+    "10) 음수는 △ 또는 - 를 그대로 살려 적는다. 적자를 양수로 적지 마라.")
 
 
 EXTRACT_INSTRUCT = (
@@ -290,7 +333,8 @@ BUDGET_SEC = 240                      # server.py GUARD_SEC(285) 안쪽
 
 # 요청 단위 상태. answer_question 진입 시각을 기준점으로 잡는다.
 # 평가 서버는 요청을 순차 처리하므로 모듈 전역으로 충분하다.
-_REQ = {"t0": None, "trace": None, "calls": [], "counted": None}
+_REQ = {"t0": None, "trace": None, "calls": [], "counted": None,
+        "opinion_part": False, "owner_hops": 0}
 
 
 def begin_request(trace=None):
@@ -299,6 +343,8 @@ def begin_request(trace=None):
     _REQ["trace"] = trace
     _REQ["calls"] = []
     _REQ["counted"] = None
+    _REQ["opinion_part"] = False
+    _REQ["owner_hops"] = 0
 
 
 def _budget_left() -> float:
@@ -496,6 +542,27 @@ def parse_kam_output(raw: str):
     return "", _clean_output(s)
 
 
+def strip_opinion_sentences(answer: str, trace=None):
+    """평가·전망 표현이 든 문장을 답변에서 제거한다.
+
+    프롬프트 금지와 요구 분리 고지를 지나도 "긍정적인 신호로 해석될 수 있지만"
+    같은 문장이 남는다. 투자의견 금지는 대회 규칙이므로 코드가 마지막에 지운다.
+    """
+    if not answer:
+        return answer
+    keep, dropped = [], []
+    for sent in re.split(r"(?<=[.!?다요])\s+", answer):
+        # 공시 서식 용어("취득예상기간", "취득예정주식")는 전망이 아니라 기재 항목명이다.
+        probe = _FORM_TERM_RE.sub(" ", sent)
+        if _OPINION_RE.search(probe) or _EVAL_WORD_RE.search(probe):
+            dropped.append(sent.strip()[:60])
+        else:
+            keep.append(sent)
+    if dropped and trace is not None:
+        trace.append(f"[평가-삭제] 평가·전망 문장 {len(dropped)}건 제거: {dropped[0]}")
+    return " ".join(k for k in keep if k.strip()).strip()
+
+
 def truncated(answer: str) -> bool:
     """구분자 없이 문장이 미완인 채로 끝났는지 — maxTokens 잘림 추정."""
     a = (answer or "").rstrip()
@@ -606,6 +673,12 @@ def build_context(hits, start_i=1):
 _UNIT_WON = {"조원": Decimal("1e12"), "억원": Decimal("1e8"), "백만원": Decimal("1e6"),
              "천원": Decimal("1e3"), "원": Decimal(1)}
 _VALUE_RE = re.compile(r"([\d,]+(?:\.\d+)?)\s*(조\s?원|억\s?원|백만\s?원|천\s?원|원)")
+# "2조 8,119억원" — 조 단위 접두를 놓치면 값이 통째로 어긋난다(H7)
+_COMPOSITE_RE = re.compile(r"([\d,]+)\s*조\s*([\d,]+)\s*억\s?원?")
+# 단위가 빠진 값 ("값: 24,858,075") — 표 선언 단위로 보충한다(H2)
+_BARE_NUM_RE = re.compile(r"(?<![\d,])(\d{1,3}(?:,\d{3})+|\d{4,})(?![\d,])")
+# 음수 표기 — 재무제표는 △ 또는 괄호를 쓴다(H6의 2023년 별도 영업이익 △11,526,297)
+_NEG_MARK_RE = re.compile(r"[△▲]\s*[\d(]|\(\s*[\d,]+\s*\)\s*(?:백만|억|조|천)?원?|-\s?[\d,]{4,}")
 _TRILLION = Decimal("1e12")
 _HUNDRED_MILLION = Decimal("1e8")
 # 답변 문자열에서 뽑아 검산할 숫자 (자릿수 구분 쉼표 허용, 7자리 이상)
@@ -631,17 +704,44 @@ def is_round_number(raw: str) -> bool:
     return len(digits.rstrip("0")) < MIN_SIGNIFICANT_DIGITS
 
 
-def _parse_line(line: str):
-    """'값:' 줄 하나 → (Decimal|None, status). status: ok | round | none."""
+def _parse_line(line: str, context: str = ""):
+    """'값:' 줄 하나 → (Decimal|None, status). status: ok | round | none.
+
+    세 가지를 함께 본다.
+    - "2조 8,119억원" 같은 복합 표기 (억 단위만 잡히면 값이 1/4로 줄어든다)
+    - 단위가 빠진 값 ("값: 24,858,075") — 컨텍스트의 표 선언 단위로 보충한다
+    - 음수 표기 (△, -, 괄호)
+    """
+    sign = Decimal(-1) if _NEG_MARK_RE.search(line) else Decimal(1)
+
+    mc = _COMPOSITE_RE.search(line)
+    if mc:
+        try:
+            v = (Decimal(mc.group(1).replace(",", "")) * _TRILLION
+                 + Decimal(mc.group(2).replace(",", "")) * _HUNDRED_MILLION)
+            return sign * v, "ok"
+        except InvalidOperation:
+            return None, "none"
+
     m = _VALUE_RE.search(line)
-    if not m:
-        return None, "none"
-    if is_round_number(m.group(1)):
-        return None, "round"
-    try:
-        return _to_won(m), "ok"
-    except InvalidOperation:
-        return None, "none"
+    if m:
+        if is_round_number(m.group(1)):
+            return None, "round"
+        try:
+            return sign * _to_won(m), "ok"
+        except InvalidOperation:
+            return None, "none"
+
+    # 단위 없는 값 — 그 숫자가 실린 표의 선언 단위를 신뢰한다.
+    mb = _BARE_NUM_RE.search(line)
+    if mb and context:
+        unit = unit_for_number(context, mb.group(1))
+        if unit:
+            try:
+                return sign * Decimal(mb.group(1).replace(",", "")) * _UNIT_WON[unit], "ok"
+            except (InvalidOperation, KeyError):
+                return None, "none"
+    return None, "none"
 
 
 def _value_lines(extract: str):
@@ -702,9 +802,10 @@ def grounded_extract(extract: str, context: str, trace=None):
     return "\n".join(keep)
 
 
-def parse_krw_all(extract: str):
+def parse_krw_all(extract: str, context: str = ""):
     """추출 결과의 모든 '값:' 줄에서 금액을 원 단위 Decimal 리스트로 환산."""
-    return [v for line in _value_lines(extract) if (v := _parse_line(line)[0]) is not None]
+    return [v for line in _value_lines(extract)
+            if (v := _parse_line(line, context)[0]) is not None]
 
 
 # 주식 수 — 금액과 단위 체계가 달라 별도 파서로 분리한다. 섞으면 원 단위 환산이
@@ -831,6 +932,59 @@ def extract_units(extract: str):
         if m:
             out.add(m.group(2).replace(" ", ""))
     return out
+
+
+# 질문이 지목할 수 있는 재무 지표 — 표에서 바로 위아래 행과 헷갈리는 것들
+METRIC_WORDS = (
+    "영업이익", "영업손실", "영업수익", "매출액", "매출총이익", "매출원가",
+    "당기순이익", "분기순이익", "반기순이익", "순이익", "법인세비용차감전순이익",
+    "자산총계", "부채총계", "자본총계", "현금배당", "배당금총액", "주당배당금", "매출")
+
+
+def row_label_for_number(context: str, num_tok: str):
+    """그 숫자가 실린 표 행의 항목명(첫 텍스트 셀).
+
+    파이프 표에서 숫자 셀들을 거슬러 올라가다 처음 만나는 한글 셀이 행 라벨이다.
+    """
+    i = (context or "").find(num_tok)
+    if i < 0:
+        return None
+    for cell in reversed((context[:i]).split("|")[:-1]):
+        c = cell.strip()
+        if not c or _NUMERIC_CELL_RE.fullmatch(c):
+            continue
+        return c
+    return None
+
+
+_NUMERIC_CELL_RE = re.compile(r"[\d,.\s\-△▲()]+")
+
+
+def metric_mismatch(question: str, context: str, extract: str):
+    """추출값이 질문이 지목한 항목의 행에서 나왔는지.
+
+    반환: None(일치) 또는 ("block"|"warn", 지표어, 행라벨).
+
+    검색은 맞는데 추출이 바로 위아래 행을 집는 사고가 반복된다
+    (H2: 영업이익 대신 다른 행, H6: 연간 대신 분기 행).
+    """
+    want = [w for w in METRIC_WORDS if w in (question or "")]
+    if not want:
+        return None
+    for ln in _value_lines(extract):
+        for tok in re.findall(r"\d{1,3}(?:,\d{3})+|\d{4,}", ln):
+            if len(_digits(tok)) in (8, 14) and "," not in tok:
+                continue
+            label = row_label_for_number(context, tok)
+            if not label:
+                continue
+            if any(w in label for w in want):
+                return None
+            # 다른 지표 행에서 나왔으면 오독이다. 부문명·연도 같은 비지표 라벨이면
+            # 표 형태가 다른 것이므로 기록만 하고 막지 않는다(부문별 손익표).
+            other = next((w for w in METRIC_WORDS if w in label), None)
+            return ("block" if other else "warn"), want[0], label[:30]
+    return None
 
 
 def unit_for_number(context: str, num_tok: str):
@@ -1023,6 +1177,39 @@ def share_class_ratios(question: str, context: str):
     return uniq
 
 
+GROWTH_QUESTION_RE = re.compile(r"성장률|증가율|감소율|증감률|CAGR|연평균")
+_BASIS_YEAR_RE = re.compile(r"기준\s*[:：][^|\n]*?(20\d\d)")
+
+
+def year_values(extract: str, context: str = ""):
+    """'값: ... | 기준: 2024년 ...' 줄에서 (연도, 값) 쌍을 모은다."""
+    out = {}
+    for ln in _value_lines(extract):
+        v, st = _parse_line(ln, context)
+        m = _BASIS_YEAR_RE.search(ln)
+        if v is None or st != "ok" or not m:
+            continue
+        out.setdefault(m.group(1), v)
+    return dict(sorted(out.items()))
+
+
+def cagr(series):
+    """(연도, 값) 정렬 계열의 연평균 성장률(%). 계산 불가면 None.
+
+    모델에게 맡기면 총변화율을 CAGR이라 부르거나 단위를 뒤섞는다
+    (H6: "-466.67조 원/년"). 적자 구간은 계산하지 않는다.
+    """
+    yrs = list(series)
+    if len(yrs) < 2:
+        return None
+    first, last = series[yrs[0]], series[yrs[-1]]
+    n = int(yrs[-1]) - int(yrs[0])
+    if n <= 0 or first <= 0 or last <= 0:
+        return None
+    ratio = (Decimal(last) / Decimal(first)) ** (Decimal(1) / Decimal(n))
+    return ((ratio - 1) * 100).quantize(Decimal("0.01"))
+
+
 def ratio_krw(numerator, denominator):
     """비율(%) 계산 — Decimal 나눗셈, 소수 둘째 자리.
 
@@ -1054,12 +1241,20 @@ SUM_QUESTION_RE = re.compile(r"합계|합쳐|총액|총\s?금액|더하|합산|�
 COMPARE_QUESTION_RE = re.compile(r"비교|대비|차이|어느\s?쪽|누가\s?더|보다\s?(큰|작|많|적)")
 
 
+def asked_units(question: str):
+    """질문이 요구한 표시 단위 전부. "조원 단위와 백만원 단위로 각각"을 놓치지 않는다."""
+    out = []
+    for m in _ASK_UNIT_RE.finditer(question or ""):
+        u = m.group(1) or m.group(2)
+        u = u if u.endswith("원") else u + "원"
+        if u not in out:
+            out.append(u)
+    return out
+
+
 def asked_unit(question: str):
-    m = _ASK_UNIT_RE.search(question)
-    if not m:
-        return None
-    u = m.group(1) or m.group(2)
-    return u if u.endswith("원") else u + "원"
+    units = asked_units(question)
+    return units[0] if units else None
 
 
 # 명시 표현 없이 합산 의도로 보는 조건 — 상수로 노출한다.
@@ -1157,10 +1352,14 @@ def needs_two_stage(question: str, hits) -> bool:
 
 
 def needs_reextract(ext: str) -> bool:
-    """어림수 재추출이 필요한지. 이미 표 형식 수치면 재추출을 생략한다."""
-    if not has_round_number(ext):
-        return False
-    return not any(TABLE_NUMBER_RE.search(ln) for ln in _value_lines(ext))
+    """어림수 재추출이 필요한지.
+
+    "어느 줄이든 표 수치가 있으면 생략"으로 보면 정밀값과 어림수가 섞인 추출에서
+    어림수가 그대로 살아남는다(H6: 2023·2024년은 백만원, 2025년만 '24조 원').
+    어림수가 든 줄 자체에 표 형식 수치가 없으면 재추출한다.
+    """
+    return any(_parse_line(ln)[1] == "round" and not TABLE_NUMBER_RE.search(ln)
+               for ln in _value_lines(ext))
 
 
 VERIFY_BLOCK_MSG = ("추출값과 계산값이 불일치해 수치를 확정하지 못했습니다. "
@@ -1210,6 +1409,15 @@ def fix_answer_units(answer: str, context: str, trace):
     return out
 
 
+# 완전한 날짜 — "2026년 1월 2일" / "2026-01-02" / "2026.01.02"
+_FULL_DATE_RE = re.compile(
+    r"(20\d\d)\s*[.\-년]\s*(\d{1,2})\s*[.\-월]\s*(\d{1,2})\s*일?")
+
+
+def _ymd(m) -> str:
+    return f"{m.group(1)}{int(m.group(2)):02d}{int(m.group(3)):02d}"
+
+
 def ground_answer(answer: str, context: str, hits, allowed, trace):
     """답변 사후 수치·출처 검증 — 근거에 없는 수치를 내보내지 않는다.
 
@@ -1228,10 +1436,20 @@ def ground_answer(answer: str, context: str, hits, allowed, trace):
         trace.append(f"[환각-차단] 답변 수치 {tok}이 근거에 없음")
         return VERIFY_BLOCK_MSG
 
-    valid_rcept = {rec["rcept_no"] for rec, _ in hits}
+    # 정정 체인의 원본 번호(폐기본)는 hits의 rcept_no에는 없지만 본문
+    # "정정본(대상→20241115000375)"에 실재한다. 근거에 있는 번호는 통과시킨다.
+    valid_rcept = {rec["rcept_no"] for rec, _ in hits} | set(_RCEPT_RE.findall(context or ""))
     for no in _RCEPT_RE.findall(answer):
         if no not in valid_rcept:
             trace.append(f"[환각-차단] 답변 접수번호 {no}이 검색 결과에 없음")
+            return VERIFY_BLOCK_MSG
+
+    # 날짜도 지어낸다("2026년 1월 2일 홍라희로부터 이재용으로 증여"). 수치·출처와
+    # 같은 기준으로 근거 대조한다.
+    ctx_dates = {_ymd(m) for m in _FULL_DATE_RE.finditer(context or "")}
+    for m in _FULL_DATE_RE.finditer(answer):
+        if _ymd(m) not in ctx_dates:
+            trace.append(f"[환각-차단] 답변 날짜 {m.group(0)}이 근거에 없음")
             return VERIFY_BLOCK_MSG
     return answer
 
@@ -1273,7 +1491,8 @@ def pct_gate(answer: str, pcts, trace):
     return out
 
 
-def verify_gate(answer: str, expected, trace, display: str = ""):
+def verify_gate(answer: str, expected, trace, display="",
+                displays=()):
     """검산 게이트 — 불일치 답변을 그대로 내보내지 않는다.
 
     감지만 하고 통과시키면 틀린 수치가 그대로 채점된다(2025년 매출액을
@@ -1284,7 +1503,8 @@ def verify_gate(answer: str, expected, trace, display: str = ""):
         return answer
     # 요청 단위로 환산해 답한 경우(억원 단위 요구)도 통과시킨다. 원 단위 값만
     # 인정하면 정답을 쓴 답변이 차단된다(E2).
-    if verify_number(answer, expected) or (display and answer_has_number(answer, display)):
+    alts = [d for d in ([display] + list(displays)) if d]
+    if verify_number(answer, expected) or any(answer_has_number(answer, d) for d in alts):
         return answer
     # 게이트는 답변이 "다른 숫자를 주장할 때"만 발동한다. 한계 고지·거절처럼
     # 수치를 주장하지 않는 답변은 불일치가 아니다.
@@ -1303,7 +1523,7 @@ def verify_gate(answer: str, expected, trace, display: str = ""):
         # 대체값에 이미 "(약 N조원)"이 붙어 있어 모델이 쓴 같은 표기와 겹친다
         fixed = re.sub(r"(\(약 [\d.,]+\s?조\s?원\))\s*\(약 [\d.,]+\s?조\s?원\)",
                        r"\1", fixed)
-        if verify_number(fixed, expected) or (display and answer_has_number(fixed, display)):
+        if verify_number(fixed, expected) or any(answer_has_number(fixed, d) for d in alts):
             trace.append(f"[검산-대체] 답변 수치를 코드값({correct})으로 대체")
             return fixed
     trace.append("[검산-전환] 대체 불가 → 한계 고지로 전환")
@@ -1482,6 +1702,13 @@ def answer_one_stage(question: str, hits, trace):
     sources = "\n".join(f"- {src_label(rec)}" for rec, _ in hits[:3])
     facts = (f"[근거 발췌]\n{ctx}\n\n### 출처 (검색 메타데이터 — 이 값을 그대로 사용할 것)\n"
              + sources)
+    hops = _REQ.get("owner_hops") or 0
+    if hops >= 2:
+        facts += (f"\n\n### 단계 요구\n질문은 지배구조를 {hops}단계 거슬러 묻는다. "
+                  f"1단계부터 {hops}단계까지 각 단계의 주체를 순서대로 밝히고, "
+                  f"{hops}단계의 주체와 그 지분율을 직답으로 제시하라. 중간 단계의 "
+                  f"주체를 답으로 내놓고 지분율만 다음 단계 것을 쓰는 뒤섞임을 하지 마라. "
+                  f"근거에서 {hops}단계를 확인할 수 없으면 몇 단계까지 확인되는지 밝힐 것.")
     fy_note = fiscal_column_note(question, ctx, hits)
     if fy_note:
         facts += "\n\n### 연도 열 판정 (코드 — 이 열의 값만 취할 것)\n" + fy_note
@@ -1510,6 +1737,12 @@ def answer_one_stage(question: str, hits, trace):
     if leaks:
         ans = strip_leaked_labels(ans)
         trace.append(f"[5!] 입력 구조 노출 감지 — 제거함: {leaks}")
+    ans = strip_opinion_sentences(ans, trace)
+    if hops >= 2:
+        reached = len(re.findall(r"(?:최대주주|모회사|지배기업|지주회사)", ans or ""))
+        if reached < hops:
+            trace.append(f"[5!] 단계 미달 — {hops}단계를 물었으나 답변이 언급한 "
+                         f"지배구조 단계는 {reached}개")
     trace.append("[5] 서술 생성 완료(1단계)")
     return model_trace, ans
 
@@ -1555,7 +1788,7 @@ def answer_single_company(question: str, hits, trace):
                 trace.append("[4!] 재추출도 어림수 — 코드 환산 생략, 표 기재값 확인 필요 문구 부기")
 
     ext_g = grounded_extract(ext, ctx, trace)
-    values = [] if rounded else parse_krw_all(ext_g)
+    values = [] if rounded else parse_krw_all(ext_g, ctx)
     shares = [] if rounded else parse_shares_all(ext_g)
     # 계산 상태 — 값의 유무(None) 하나로 뭉개면 '계산 불필요'와 '추출 실패'와
     # '단위 오염'이 구분되지 않아 게이트가 전부 통과시킨다(E2의 3경원).
@@ -1589,7 +1822,7 @@ def answer_single_company(question: str, hits, trace):
             f"[발췌]\n{ctx}\n\n[질문]\n{question}\n\n{EXTRACT_INSTRUCT}\n{RATIO_REEXTRACT_INSTRUCT}",
             max_tokens=MAXTOK_EXTRACT, label="re-extract-ratio")
         ext_rg = grounded_extract(ext_r, ctx, trace) if ext_r else ""
-        vals_r = parse_krw_all(ext_rg)
+        vals_r = parse_krw_all(ext_rg, ctx)
         shrs_r = parse_shares_all(ext_rg)
         if len(vals_r) >= 2 or len(shrs_r) >= 2:
             ext, values, shares = ext_r, vals_r, shrs_r
@@ -1597,6 +1830,22 @@ def answer_single_company(question: str, hits, trace):
         else:
             ratio_blocked = True
             trace.append("[4!] 비율 재추출도 분모 확보 실패 - 비율 답변 차단, 한계 고지로 전환")
+
+    mism_metric = metric_mismatch(question, ctx, ext_g)
+    if mism_metric:
+        kind, want_w, label = mism_metric
+        trace.append(f"[4!] 항목명 불일치({kind}) — 질문은 '{want_w}'인데 추출값은 "
+                     f"'{label}' 행에서 나왔다"
+                     + (". 코드 계산 생략" if kind == "block" else " (비지표 라벨 — 기록만)"))
+        if kind == "block":
+            values, shares = [], []
+            facts_metric_note = (f"추출값이 '{label}' 행에서 나왔다. 질문이 요구한 항목은 "
+                                 f"'{want_w}'이다. 항목명이 정확히 일치하는 행의 값만 쓰고, "
+                                 f"일치하는 행이 없으면 확인되지 않는다고 밝힐 것.")
+        else:
+            facts_metric_note = ""
+    else:
+        facts_metric_note = ""
 
     if missing_rcept_no(ext):
         trace.append("[4!] 출처 접수번호 누락")
@@ -1628,6 +1877,7 @@ def answer_single_company(question: str, hits, trace):
 
     if len(values) >= 2 and wants_sum(question, values, ext_g):
         expected, total_s = sum_krw(values)
+        allowed_nums |= {f"{v:.0f}" for v in values}
         terms = " + ".join(f"{v:,.0f}" for v in values)
         calc_lines.append(f"합계: {terms} = {total_s}")
         allowed_nums.add(f"{expected:.0f}")
@@ -1635,7 +1885,7 @@ def answer_single_company(question: str, hits, trace):
     elif table_ratios:
         for basis, item, num, den, pct in table_ratios:
             calc_lines.append(f"{basis} 기준 비율: {item} {num:,.0f} / {den:,.0f} = {pct}%")
-            allowed_nums.add(_digits(str(pct)))
+            allowed_nums |= {_digits(str(pct)), f"{num:.0f}", f"{den:.0f}"}
             pcts.append((basis, pct))
         if len(table_ratios) > 1:
             calc_lines.append("기준마다 비율이 다르므로 답변에 병기하고 각각 무엇을 "
@@ -1658,7 +1908,7 @@ def answer_single_company(question: str, hits, trace):
             calc_lines.append(f"{label} 기준 비율: {vs[0]:,.0f}{unit_s} / "
                               f"{total:,.0f}{unit_s} = {pct_s} ({basis})")
             pcts.append((label, pct))
-            allowed_nums.add(_digits(str(pct)))
+            allowed_nums |= {_digits(str(pct)), f"{vs[0]:.0f}", f"{total:.0f}"}
             trace.append(f"[4+] 코드 비율({label}): {vs[0]:,.0f} / {total:,.0f} "
                          f"= {pct_s} — {basis}")
         if len(values) >= 2 and len(shares) >= 2:
@@ -1678,20 +1928,64 @@ def answer_single_company(question: str, hits, trace):
     if shares:
         calc_lines.append("확인된 주식 수: " + ", ".join(f"{v:,.0f}주" for v in shares))
 
-    if expected is not None and unit:
-        conv = convert_krw(expected, unit)
-        calc_lines.append(f"요청 단위({unit}) 환산: {conv}")
+    for u in (asked_units(question) if expected is not None else []):
+        conv = convert_krw(expected, u)
+        calc_lines.append(f"요청 단위({u}) 환산: {conv}")
         allowed_nums.add(_digits(conv))
         trace.append(f"[4+] 요청 단위 환산: {conv}")
 
     if _REQ.get("counted"):
         calc_lines.append("건수 집계: " + str(len(_REQ["counted"])) + "건 — "
                           + ", ".join(f"{no} {nm}" for no, nm in _REQ["counted"]))
+    if GROWTH_QUESTION_RE.search(question):
+        series = year_values(ext_g, ctx)
+        neg = {y: v for y, v in series.items() if v <= 0}
+        g = None if neg else cagr(series)
+        if neg:
+            calc_lines.append("연도별 값: " + ", ".join(
+                f"{y}년 {series[y]:,.0f}원" for y in series))
+            calc_lines.append(
+                "적자 구간(" + ", ".join(f"{y}년" for y in neg) + ")이 포함되어 성장률을 "
+                "산출하지 않았다. 증감률 대신 적자전환/흑자전환/적자지속으로 서술한다.")
+            trace.append(f"[4!] 적자 구간 포함({', '.join(neg)}) — CAGR 계산 생략")
+        elif g is not None:
+            yrs = list(series)
+            calc_lines.append("연도별 값: " + ", ".join(
+                f"{y}년 {series[y]:,.0f}원" for y in yrs))
+            calc_lines.append(
+                f"연평균 성장률(CAGR, {yrs[0]}→{yrs[-1]}, {int(yrs[-1]) - int(yrs[0])}년): {g}%")
+            allowed_nums |= {f"{v:.0f}" for v in series.values()}
+            allowed_nums.add(_digits(str(g)))
+            trace.append(f"[4+] 코드 CAGR({yrs[0]}→{yrs[-1]}): {g}%")
+        elif series:
+            calc_lines.append("연도별 값: " + ", ".join(
+                f"{y}년 {series[y]:,.0f}원" for y in series))
+            calc_lines.append("연평균 성장률은 계산하지 않았다(연도 수 부족 또는 적자 구간). "
+                              "직접 계산해 제시하지 말 것.")
+            trace.append("[4!] 성장률 계산 불가 — 연도별 값만 제공")
+
     fy_note = fiscal_column_note(question, ctx, hits)
     if fy_note:
         calc_lines.append("연도 열 판정: " + fy_note)
         trace.append(f"[4+] {fy_note}")
 
+    hops = _REQ.get("owner_hops") or 0
+    if hops >= 2:
+        facts += (f"\n\n### 단계 요구\n질문은 지배구조를 {hops}단계 거슬러 묻는다. "
+                  f"1단계부터 {hops}단계까지 각 단계의 주체를 순서대로 밝히고, "
+                  f"{hops}단계의 주체와 그 지분율을 직답으로 제시하라. 중간 단계의 "
+                  f"주체를 답으로 내놓고 지분율만 다음 단계 것을 쓰는 뒤섞임을 하지 마라. "
+                  f"근거에서 {hops}단계를 확인할 수 없으면 몇 단계까지 확인되는지 밝힐 것.")
+    if facts_metric_note:
+        facts += "\n\n### 계산 상태 경고\n" + facts_metric_note
+    if has_round_number(ext):
+        facts += ("\n\n### 계산 상태 경고\n추출된 항목 중 조·억 단위 어림수로만 확인된 것이 "
+                  "있다. 어림수 값은 표 기재값이 아니므로 다른 정밀 수치와 나란히 쓰지 말고, "
+                  "그 항목은 표 기재값 확인이 필요하다고 밝힐 것. 어림수로 증감률·성장률을 "
+                  "계산하지 말 것.")
+    if _REQ.get("opinion_part"):
+        facts += ("\n\n### 요구 분리\n질문에 수준 평가·의견 요구가 섞여 있다. 사실만 "
+                  "서술하고 좋다·나쁘다·적정하다는 평가 문장을 쓰지 말 것.")
     if calc_lines:
         facts += ("\n\n### 코드 계산 결과 — 그대로 사용하고 재계산하지 말 것\n"
                   + "\n".join(calc_lines))
@@ -1729,6 +2023,10 @@ def answer_single_company(question: str, hits, trace):
             trace.append(f"[4!-차단] 근거에 없는 비율 {ungrounded[0]}% 등장 "
                          f"(분모 미확인) - 한계 고지로 전환")
             ans = RATIO_BLOCK_MSG
+    # 검산 게이트가 답변에 심는 코드값도 코드 계산 결과다. 허용 목록에 없으면
+    # 바로 다음 단계인 사후 검증이 그것을 환각으로 판정한다(H7).
+    if expected is not None:
+        allowed_nums.add(f"{Decimal(expected):.0f}")
     ans = pct_gate(ans, pcts, trace)
     # 기준이 둘이면 하나만 답하면 절반이다. 빠진 기준은 코드가 병기한다.
     if len(pcts) >= 2 and ans and any(
@@ -1737,8 +2035,11 @@ def answer_single_company(question: str, hits, trace):
                 + ", ".join(f"{b} 기준 {p}%" for b, p in pcts) + ".")
         trace.append("[비율-병기] 기준별 비율을 답변에 병기: "
                      + ", ".join(f"{b} {p}%" for b, p in pcts))
-    display = convert_krw(expected, unit) if (expected is not None and unit) else ""
-    ans = verify_gate(ans, expected, trace, display)
+    displays = ([convert_krw(expected, u) for u in asked_units(question)]
+                if expected is not None else [])
+    display = displays[0] if displays else ""
+    allowed_nums |= {_digits(d) for d in displays}
+    ans = verify_gate(ans, expected, trace, display, displays)
     ans = fix_answer_units(ans, ctx, trace)
     ans = ground_answer(ans, ctx, hits, allowed_nums, trace)
     if truncated(ans):
@@ -1747,6 +2048,12 @@ def answer_single_company(question: str, hits, trace):
     if leaks:
         ans = strip_leaked_labels(ans)
         trace.append(f"[5!] 입력 구조 노출 감지 — 제거함: {leaks}")
+    ans = strip_opinion_sentences(ans, trace)
+    if hops >= 2:
+        reached = len(re.findall(r"(?:최대주주|모회사|지배기업|지주회사)", ans or ""))
+        if reached < hops:
+            trace.append(f"[5!] 단계 미달 — {hops}단계를 물었으나 답변이 언급한 "
+                         f"지배구조 단계는 {reached}개")
     trace.append("[5] 서술 생성 완료")
     return model_trace, ans
 
@@ -1785,6 +2092,25 @@ def answer_refusal(question_id: str, question: str, kind: str, subject: str = ""
         "think_trace": merge_trace(refusal_prose(kind, subject, len(adjacent)), log),
         "answer": refusal_answer(kind, adjacent, subject),
     }
+
+
+def period_scope(question: str):
+    """질문의 시점이 수집 범위 밖인지. ("out"|"mixed"|"in", 밖 표현) 로 돌려준다.
+
+    H3("2026년 상반기 ... 2026년 7월 이후 예정 건도")처럼 범위 안과 밖이 섞인
+    질문을 통째로 거절하면, 답할 수 있는 절반까지 버린다.
+    """
+    oor = _FUTURE_PERIOD_RE.findall(question or "")
+    if not oor:
+        return "in", ""
+    rest = _FUTURE_PERIOD_RE.sub(" ", question or "")
+    label = ", ".join(sorted({m if isinstance(m, str) else "".join(m) for m in oor}))
+    return ("mixed" if re.search(r"20(2[3-6])", rest) else "out"), label
+
+
+PERIOD_PARTIAL_NOTE = (
+    "\n\n※ 질문에 포함된 수집 범위({rng}) 밖 시점은 공시를 보유하지 않아 답변에서 "
+    "제외했습니다. 위 내용은 범위 안 시점의 공시만을 근거로 합니다.")
 
 
 def answer_boundary(question_id: str, question: str) -> dict:
@@ -1848,8 +2174,21 @@ def answer_question(question_id: str, question: str) -> dict:
         return answer_boundary(question_id, question)   # 생성 호출 없음
     if _PII_ASK_RE.search(question):
         return answer_refusal(question_id, question, REFUSAL_PII)
-    if _FUTURE_PERIOD_RE.search(question):
+    hops = owner_hops(question)
+    if hops >= 2:
+        trace.append(f"[0] 지배구조를 {hops}단계 거슬러 묻는 질문 — 각 단계를 순서대로 "
+                     f"밝히고 마지막 단계의 주체와 지분율을 답해야 한다")
+    _REQ["owner_hops"] = hops
+    opinion_part = bool(_OPINION_PART_RE.search(question))
+    if opinion_part:
+        trace.append("[0] 사실 질문에 수준 평가 요구가 섞임 — 사실만 답하고 평가는 분리 고지")
+    _REQ["opinion_part"] = opinion_part
+    scope, oor_label = period_scope(question)
+    if scope == "out":
         return answer_refusal(question_id, question, REFUSAL_OUT_OF_PERIOD)
+    if scope == "mixed":
+        trace.append(f"[0] 수집 범위 밖 시점({oor_label})과 범위 안 시점이 함께 요구됨 "
+                     f"— 범위 안 부분만 답하고 밖은 고지로 분리")
     ret = get_retriever()
     companies = ret.route(question)
     trace.append(f"[1] 회사 라우팅: {companies if companies else '탐지 실패'}")
@@ -1903,6 +2242,10 @@ def answer_question(question_id: str, question: str) -> dict:
         trace.append("[5] 생성모델 미설정 → 추출식 폴백")
         model_trace, ans = "", extractive_answer(question, hits)
 
+    if scope == "mixed" and ans:
+        ans += PERIOD_PARTIAL_NOTE.format(rng=CORPUS_RANGE)
+    if opinion_part and ans:
+        ans += OPINION_PARTIAL_NOTE
     return {"question_id": question_id, "question": question,
             "retrieved_context": context,
             "think_trace": merge_trace(model_trace, trace), "answer": ans}

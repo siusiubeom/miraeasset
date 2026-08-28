@@ -11,7 +11,7 @@ import answerer as A
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 HERE = Path(__file__).resolve().parent
-SRC = HERE / "adversarial_results_v13.json"
+SRC = HERE / (sys.argv[2] if len(sys.argv) > 2 else "adversarial_results_v13.json")
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE / "adversarial_results_new.json"
 
 qs = [(r["qid"], r["q"]) for r in json.loads(SRC.read_text(encoding="utf-8"))]
