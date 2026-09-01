@@ -9,6 +9,9 @@ import csv, json, math, os, re, sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
+from evidence_tier import annotate
+from section_map import matches as section_matches, resolve_sections
+
 ROOT = Path(__file__).resolve().parents[1]
 CHUNK_DIR = ROOT / "processed" / "chunks"
 
@@ -30,6 +33,14 @@ SECTION_PRIORS = [
     (r"자기주식|자사주",                    r"자기주식", 0.6),
     (r"유상증자|전환사채|신주인수권|교환사채|\bCB\b|\bBW\b|\bEB\b|자금조달", r"증자|사채", 0.5),
     (r"소송",                              r"소송", 0.6),
+    # 주석에만 있는 항목들 — 목적적합성 판정을 프리어가 맡는다
+    (r"자본금|액면|납입자본|주식발행초과금",   r"자본금", 0.6),
+    (r"우발|충당부채|채무보증|지급보증",      r"우발|충당", 0.6),
+    (r"특수관계자|계열사\s?거래",            r"특수관계자", 0.6),
+    (r"부문|세그먼트",                      r"부문", 0.6),
+    (r"개발비|무형자산|영업권|손상",          r"무형자산|영업권|손상", 0.6),
+    (r"리스|사용권자산",                    r"리스", 0.6),
+    (r"파생|헤지|위험회피",                 r"파생|위험관리", 0.6),
     (r"합병|분할|주식교환",                  r"합병|분할|주식교환", 0.5),
     # 기준(연결/별도) 및 보고서 종류 명시 시
     (r"연결\s?(기준|재무|매출|영업|손익)",    r"연결", 0.4),
@@ -40,6 +51,58 @@ SECTION_PRIORS = [
 ]
 
 SUPERSEDED_PENALTY = 0.55  # 정정으로 대체된 원본 청크의 점수 배율
+
+# ── 증거 위계 가중치 (감사기준서 500) ────────────────────────────────────────
+# 정정 감점이 위계의 시점 축이라면 이쪽은 문서 유형 축이다. BM25는 지표어가
+# 조밀한 서술문을 표보다 위로 올리는데, 정확한 값은 표에만 있다.
+# K-IFRS에서 주석(tier 3)은 재무제표의 일부이자 감사의견의 대상이다. 반면
+# 요약재무정보(tier 4)는 감사받은 수치를 사업보고서에 옮겨 적은 것이라 감사
+# 대상이 아니다. 신뢰성 축에서 3은 2와 4 사이에 온다.
+# 목적적합성(질문이 그 절을 요구하는가)은 이 가중치가 아니라 SECTION_PRIORS와
+# 지정형 경로가 맡는다 — 감사기준 500이 적합성을 두 축으로 가르는 그대로다.
+_DEFAULT_TIER_WEIGHT = {1: 1.5, 2: 1.4, 3: 1.35, 4: 1.2, 5: 0.7, 6: 0.6}
+
+
+def _load_tier_weight():
+    """EVIDENCE_TIER_WEIGHT="1:1.5,5:0.6" 형식으로 덮어쓸 수 있다."""
+    w = dict(_DEFAULT_TIER_WEIGHT)
+    raw = os.environ.get("EVIDENCE_TIER_WEIGHT", "").strip()
+    for part in raw.split(","):
+        if ":" not in part:
+            continue
+        k, _, v = part.partition(":")
+        try:
+            w[int(k.strip())] = float(v)
+        except ValueError:
+            print(f"[warn] EVIDENCE_TIER_WEIGHT 항목을 읽지 못함: {part!r}", file=sys.stderr)
+    return w
+
+
+TIER_WEIGHT = _load_tier_weight()
+
+
+def use_evidence_tier() -> bool:
+    """기본 켜짐. USE_EVIDENCE_TIER=0 으로 끈다(전후 비교용 스위치)."""
+    return os.environ.get("USE_EVIDENCE_TIER", "1") not in ("0", "false", "False")
+
+
+# 수치를 묻는 질문에만 가중치를 건다. 계약상대·목적·대상자처럼 서술에 답이
+# 있는 질문에서 표를 위로 올리면 오히려 정답을 밀어낸다.
+# 금액·수량을 다루는 질문. 계약상대·목적·대상자처럼 서술에 답이 있는 질문에는
+# 가중치를 걸지 않는다. '액면총액·자본금'처럼 "얼마"라는 말 없이 수치를 묻는
+# 표현이 있어 좁게 넓혔다(Q13은 이것이 없어 가중치가 발동하지 않았다).
+NUMERIC_QUESTION_RE = re.compile(
+    r"얼마|금액|매출|영업이익|순이익|비중|비율|몇|규모|"
+    r"총액|자본금|액면|주식수|주식\s?총수|단가|수량")
+
+
+def use_section_route() -> bool:
+    """지정형 경로. 기본 켜짐, USE_SECTION_ROUTE=0으로 끈다.
+
+    BM25를 버리는 게 아니라 검색이 필요 없는 질문을 검색에서 빼는 것이다.
+    지정 절 안에서의 순위는 여전히 BM25가 정한다.
+    """
+    return os.environ.get("USE_SECTION_ROUTE", "1") not in ("0", "false", "False")
 
 ALIASES = {  # 통용명 → listed_name (universe 파일명 기준)
     "현대자동차": "현대차", "케이티": "KT", "NC": "엔씨소프트", "엔시소프트": "엔씨소프트",
@@ -162,6 +225,11 @@ class Retriever:
         for r in recs:  # 정정으로 대체된 원본임을 청크에 표시 (답변 생성 시에도 활용)
             r["superseded_by"] = self.superseded.get(r["rcept_no"], [])
             r["supersedes"] = self.supersedes.get(r["rcept_no"], [])
+            # 증거 위계는 로드 시 계산해 붙인다. 재청킹하지 않는다 — 정규식
+            # 몇 개라 로드 비용이 무시할 만하고, 규칙을 고칠 때마다 청크를 다시
+            # 만들 이유가 없다. 청킹에 굽고 싶으면 chunk_docs.py에서 같은
+            # 모듈(evidence_tier.annotate)을 부르면 된다.
+            annotate(r)
         self._cache[listed] = Bm25Index(recs)
         while len(self._cache) > self._cache_max:
             self._cache.popitem(last=False)
@@ -173,6 +241,8 @@ class Retriever:
                   if re.search(q_pat, question)]
         years = set(re.findall(r"20\d\d", question))
         wants_quarter = bool(re.search(r"분기|반기|Q[1-4]", question))
+        tier_on = use_evidence_tier() and bool(NUMERIC_QUESTION_RE.search(question))
+        tier_mult = {}   # chunk_id → 적용된 위계 배율 (기각 서술의 재료)
 
         def prior(rec):
             mult = 1.0
@@ -194,17 +264,23 @@ class Retriever:
                     mult *= 1.35
             if rec["superseded_by"]:
                 mult *= SUPERSEDED_PENALTY
+            # 추정 등급(tier_confident=False)으로는 순위를 흔들지 않는다.
+            if tier_on and rec.get("tier_confident"):
+                w = TIER_WEIGHT.get(rec.get("evidence_tier"), 1.0)
+                tier_mult[rec["chunk_id"]] = w
+                mult *= w
             return mult
 
-        return prior, active
+        return prior, active, tier_mult
 
     RESERVE = 3  # 사전확률 발동 시 해당 섹션 청크에 보장하는 최소 슬롯 수
 
     def search(self, question: str, topk=10, companies=None):
         comps = companies or self.route(question)
         if not comps:
-            return {"companies": [], "hits": [], "priors": []}
-        prior, active = self.make_prior(question)
+            return {"companies": [], "hits": [], "priors": [],
+                    "tier_demoted": [], "section_route": []}
+        prior, active, tier_mult = self.make_prior(question)
 
         # 슬롯 보장은 '어느 절에 답이 있는가'를 지목하는 강한 프리어(가중치 0.6↑)에만 적용.
         # 약한 수식 프리어(연결/별도/보고서종류, 0.4)는 점수 배율에만 관여한다.
@@ -214,12 +290,45 @@ class Retriever:
             target = rec["section_path"] + " " + rec["report_nm"]
             return any(sec_re.search(target) for sec_re in strong)
 
+        # 지정형 경로 — 지표어가 절에 매핑되면 그 절 안에서만 순위를 매긴다.
+        # 매핑이 없거나 후보가 0건이면 즉시 탐색형(전체 검색)으로 되돌아간다.
+        route_pat, route_word = ((None, None) if not use_section_route()
+                                 else resolve_sections(question))
+
         per = max(topk // len(comps), 3)
-        hits = []
+        hits, demoted, route_notes = [], [], []
         for c in comps:
             idx = self.index_for(c)
-            cands = idx.search(question, topk=max(per * 6, 30), prior=prior)
+            cands = []
+            if route_pat:
+                pool = [r for r in idx.records if section_matches(r, route_pat)]
+                if pool:
+                    allowed = {r["chunk_id"] for r in pool}
+
+                    def scoped(rec, _p=prior, _a=allowed):
+                        return _p(rec) if rec["chunk_id"] in _a else 0.0
+
+                    cands = idx.search(question, topk=max(per * 6, 30), prior=scoped)
+                    if cands:
+                        route_notes.append(
+                            f"[2+] 절 지정: '{route_word}' → {route_pat[2]} "
+                            f"(후보 {len(pool)}개, {c})")
+                    else:
+                        route_notes.append(
+                            f"[2!] 지정 절 후보에 질의어가 없음 → 전체 검색으로 전환 ({c})")
+                else:
+                    route_notes.append(f"[2!] 지정 절에 후보 없음 → 전체 검색으로 전환 ({c})")
+            if not cands:
+                cands = idx.search(question, topk=max(per * 6, 30), prior=prior)
             main = cands[:per]
+            # 위계 가중치가 없었으면 상위에 들었을 하위 tier 청크. 밀려난 사실
+            # 자체가 판단이므로 기각 서술의 재료로 남긴다.
+            if tier_mult:
+                raw = sorted(cands, key=lambda h: -(h[1] / tier_mult.get(h[0]["chunk_id"], 1.0)))
+                kept = {h[0]["chunk_id"] for h in main}
+                demoted += [h[0] for h in raw[:per]
+                            if h[0]["chunk_id"] not in kept
+                            and (h[0].get("evidence_tier") or 0) >= 5]
             if active:
                 # 프리어 섹션 청크가 보장 슬롯만큼 없으면, 후보군의 상위 프리어 청크로
                 # 하위 비(非)프리어 청크를 교체 (서술형 요약이 재무제표 표를 밀어내는 문제 방지)
@@ -238,4 +347,5 @@ class Retriever:
             hits.extend(main)
         hits.sort(key=lambda x: -x[1])
         return {"companies": comps, "hits": hits[:topk],
-                "priors": [sr.pattern for sr, _ in active]}
+                "priors": [sr.pattern for sr, _ in active],
+                "tier_demoted": demoted, "section_route": route_notes}
