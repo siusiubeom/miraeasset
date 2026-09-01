@@ -10,6 +10,9 @@ import json, os, re, time, urllib.error, urllib.request
 from decimal import Decimal, InvalidOperation
 from itertools import combinations, permutations
 from pathlib import Path
+from anchor_check import (UNANCHORED_TRACE_RATIO, build_anchors, has_direct_answer,
+                          renumber, split_sentences, unanchored_sentences)
+from evidence_tier import tier_label
 from retrieval import Retriever
 
 # .env 로드 (프로젝트 루트) — 이미 설정된 환경변수는 덮어쓰지 않음
@@ -31,7 +34,12 @@ CTX_SEP = "\n\n===== [근거 {i}] {src} =====\n"
 _OPINION_RE = re.compile(
     r"전망|예상|예측|오를까|오를지|내릴까|내릴지|떨어질까|떨어질지|"
     r"좋아질|나빠질|어떻게\s?될|괜찮을까|"
-    r"투자\s?의견|매수|매도|목표\s?주가|추천|사도\s?될까|살까")
+    r"투자\s?의견|목표\s?주가|추천|사도\s?될까|살까|"
+    # '매수·매도'는 공시 어휘이기도 하다(장내매수, 1일 매수 주문수량 한도).
+    # 투자 판단을 묻는 형태일 때만 잡는다.
+    r"매수\s?(?:의견|추천|타이밍|해야|할까|하면\s?될)|"
+    r"매도\s?(?:의견|추천|타이밍|해야|할까|하면\s?될)|"
+    r"매수[·/]매도|사야\s?하|팔아야\s?하")
 
 # 질문 전체가 예측·투자의견은 아니지만 평가 한 줄을 곁들여 달라는 요구
 # ("이 정도면 괜찮은 수준인지 한 줄 평가도"). 통째로 거절하면 사실 부분까지
@@ -334,7 +342,8 @@ BUDGET_SEC = 240                      # server.py GUARD_SEC(285) 안쪽
 # 요청 단위 상태. answer_question 진입 시각을 기준점으로 잡는다.
 # 평가 서버는 요청을 순차 처리하므로 모듈 전역으로 충분하다.
 _REQ = {"t0": None, "trace": None, "calls": [], "counted": None,
-        "opinion_part": False, "owner_hops": 0}
+        "opinion_part": False, "owner_hops": 0, "tier_demoted": [],
+        "section_route": [], "hit_tiers": []}
 
 
 def begin_request(trace=None):
@@ -345,6 +354,9 @@ def begin_request(trace=None):
     _REQ["counted"] = None
     _REQ["opinion_part"] = False
     _REQ["owner_hops"] = 0
+    _REQ["tier_demoted"] = []
+    _REQ["section_route"] = []
+    _REQ["hit_tiers"] = []
 
 
 def _budget_left() -> float:
@@ -586,6 +598,41 @@ def leaked_structure(answer: str):
     return [w for w in _SECTION_WORDS if w in (answer or "")]
 
 
+def tier_rejection_lines(hits):
+    """증거 위계에서 무엇을 채택하고 무엇을 제외했는지 — 기각 서술의 재료.
+
+    지금까지 기각 서술의 재료가 정정 체인 하나뿐이라 기각 서술 비율이 23%에
+    머물렀다. 같은 지표에 표와 서술형 어림수가 함께 검색되면 그 선택 자체가
+    판단이므로 판정 이력에 싣는다.
+    """
+    tiers = [(rec.get("evidence_tier"), rec) for rec, _ in hits
+             if rec.get("tier_confident")]
+    if not tiers:
+        return []
+    best = min(t for t, _ in tiers)
+    if best > 4:
+        return []
+    # top-k 안에 남은 하위 tier + 가중치로 밀려난 하위 tier 둘 다 재료다.
+    low = [rec for t, rec in tiers if t >= 5]
+    low += [r for r in (_REQ.get("tier_demoted") or [])
+            if r["chunk_id"] not in {rec["chunk_id"] for rec in low}]
+    if not low:
+        return []
+    # 채택된 근거는 '가장 높은 등급'이 아니라 '실제로 1위로 올라온 것'이다.
+    top = hits[0][0]
+    best = top.get("evidence_tier") if top.get("tier_confident") else best
+    if best is None or best > 4:
+        return []
+    top_where = (top.get("section_path") or top.get("report_nm") or "").split(" > ")[-1]
+    low_where = ", ".join(dict.fromkeys(
+        (r.get("section_path") or r.get("report_nm") or "").split(" > ")[-1] for r in low))[:80]
+    low_tier = min((r.get("evidence_tier") or 5) for r in low)
+    return [f"- {top_where}({tier_label(best)}, tier {best})의 기재값을 채택하고, "
+            f"{low_where}({tier_label(low_tier)}, tier {low_tier})의 어림수 서술은 "
+            f"근거에서 제외했다 — 같은 지표라도 정형 표의 기재값이 서술형 어림수보다 "
+            f"신뢰성이 높다(감사기준서 500)"]
+
+
 def build_judgment_log(hits, trace) -> str:
     """모델에게 넘길 「판정 이력」 절 — 기각 서술의 재료.
 
@@ -597,6 +644,7 @@ def build_judgment_log(hits, trace) -> str:
     정정한 것인지(supersedes)도 함께 넘겨 '체인 말단을 취했다'는 판단 근거를 만든다.
     """
     lines, seen = [], set()
+    lines += tier_rejection_lines(hits)
     for rec, _ in hits:
         no = rec["rcept_no"]
         if no in seen:
@@ -1272,13 +1320,22 @@ def same_source(extract: str) -> bool:
     return len(srcs) <= 1
 
 
+# 차액을 묻는 질문 — 합산과 대칭. E03에서 897,514 + 673,561을 더한 원인이다.
+DIFF_QUESTION_RE = re.compile(r"차액|차이|초과|미달|얼마나\s?(?:큰|적은|많은|작은)|몇\s?배")
+
+
+def wants_diff(question: str) -> bool:
+    return bool(DIFF_QUESTION_RE.search(question or ""))
+
+
 def wants_sum(question: str, values=None, extract: str = "") -> bool:
     """합산 의도 판정. 비교 질문에서는 합산하지 않는다(C3의 965조원 사고).
 
     "합계·총액" 같은 명시 표현만 보면 A1을 놓친다. 같은 공시에 보통주식·기타주식
     처럼 동종 항목이 복수로 기재되고 질문이 단일 값을 요구하면 합산 의도로 본다.
     """
-    if COMPARE_QUESTION_RE.search(question) or ITEMIZED_QUESTION_RE.search(question):
+    if (COMPARE_QUESTION_RE.search(question) or ITEMIZED_QUESTION_RE.search(question)
+            or wants_diff(question)):
         return False
     if SUM_QUESTION_RE.search(question):
         return True
@@ -1374,6 +1431,25 @@ def _norm_num(tok: str) -> str:
     return tok.replace(",", "").replace(" ", "")
 
 
+def unit_variants(v):
+    """계산값의 정당한 표기들 — 원·천원·백만원·억원·조원. 모두 같은 값이다.
+
+    차액을 원 단위로만 허용 목록에 넣어, 모델이 백만원으로 쓴 223,953이
+    "근거에 없는 수치"로 차단됐다(E03).
+    """
+    out = set()
+    try:
+        d = Decimal(v)
+    except (InvalidOperation, TypeError):
+        return out
+    for factor in (Decimal(1), Decimal("1e3"), Decimal("1e6"),
+                   Decimal("1e8"), Decimal("1e12")):
+        q = d / factor
+        if q == q.to_integral_value() and abs(q) >= 1:
+            out.add(f"{abs(q.to_integral_value()):.0f}")
+    return out
+
+
 def _digits(tok: str) -> str:
     """숫자만 남긴 문자열. 단위가 붙은 표시값('3,336,059억원')을 비교할 때 쓴다."""
     return re.sub(r"[^0-9]", "", tok or "")
@@ -1416,6 +1492,90 @@ _FULL_DATE_RE = re.compile(
 
 def _ymd(m) -> str:
     return f"{m.group(1)}{int(m.group(2)):02d}{int(m.group(3)):02d}"
+
+
+def use_anchor_check() -> bool:
+    """기본 켜짐. USE_ANCHOR_CHECK=0으로 끈다."""
+    return os.environ.get("USE_ANCHOR_CHECK", "1") not in ("0", "false", "False")
+
+
+ANCHOR_BLOCK_MSG = (
+    "제공된 공시 근거만으로는 질문에 답할 수 있는 내용을 구성하지 못했습니다. "
+    "근거에 닿지 않는 서술은 답변에서 제외하고 있으며, 확인 가능한 항목을 지정해 "
+    "주시면 그 범위에서 답변드리겠습니다.")
+
+# 코드가 만든 고정 문구 — 접지 검사의 예외. 이것까지 앵커로 재면
+# "추출값과 계산값이 불일치해…"가 미접지로 지워지고 답변이 통째로 비워진다.
+_SYSTEM_MESSAGES = (FALLBACK_OPINION, FALLBACK_NO_INFO, VERIFY_BLOCK_MSG,
+                    RATIO_BLOCK_MSG, UNIT_BLOCK_MSG, ANCHOR_BLOCK_MSG)
+
+
+def _is_system_message(text: str) -> bool:
+    t = (text or "").strip()
+    return any(m[:40] in t for m in _SYSTEM_MESSAGES if m)
+
+# 정정 이력이 있는 문서를 미정정으로 서술하는 문장
+_NO_CORRECTION_RE = re.compile(r"정정되지\s?않|변경되지\s?않|수정되지\s?않|정정\s?없이\s?유지")
+
+
+def anchor_filter_answer(answer: str, anchors, trace):
+    """근거에 닿지 않는 문장을 답변에서 제거한다.
+
+    "이 표현이 나오면 지운다"가 아니라 "근거에 닿지 않으면 못 내보낸다".
+    추측 표현은 증상이고 원인은 근거 없는 주장이다.
+    """
+    if not answer or not use_anchor_check() or _is_system_message(answer):
+        return answer
+    bad = unanchored_sentences(answer, anchors)
+    if not bad:
+        return answer
+    total = len([x for x in split_sentences(answer) if len(x) >= 30])
+    kept = answer
+    for s in bad:
+        kept = kept.replace(s, " ")
+    kept = renumber(re.sub(r"[ \t]{2,}", " ", kept))
+    trace.append(f"[접지] 근거 미접지 문장 {len(bad)}개 제거: {bad[0][:50]}")
+    # 절반 넘게 지워지면 남는 것은 연결어뿐이다. 조각난 답변을 내보내지 않는다
+    # (E02: 5문장을 지우고 "이와 같은 이유로…"만 남았다).
+    if total and len(bad) / total > 0.5:
+        trace.append(f"[접지-전환] 미접지 비율 {100 * len(bad) / total:.0f}% "
+                     f"— 조각 답변 대신 한계 고지로 전환")
+        return ANCHOR_BLOCK_MSG
+    if not has_direct_answer(kept):
+        trace.append("[접지-전환] 제거 후 직답이 남지 않음 → 한계 고지로 전환")
+        return ANCHOR_BLOCK_MSG
+    return kept
+
+
+def anchor_report_trace(model_trace: str, anchors, trace):
+    """trace는 판단의 기록이라 연결·판정 문장이 정당하게 접지 없이 나온다.
+
+    제거하지 않고 기록만 한다. 비율이 절반을 넘으면 일반론으로 채운 신호다.
+    """
+    if not model_trace or not use_anchor_check():
+        return
+    sents = [s for s in split_sentences(model_trace) if len(s) >= 30]
+    if not sents:
+        return
+    bad = unanchored_sentences(model_trace, anchors)
+    trace.append(f"[접지!] trace 미접지 문장 {len(bad)}개 (전체 {len(sents)}개 중)")
+    if len(bad) / len(sents) > UNANCHORED_TRACE_RATIO:
+        trace.append(f"[접지!!] trace 미접지 비율 {100 * len(bad) / len(sents):.0f}% "
+                     f"— 일반론으로 채운 신호: {bad[0][:50]}")
+
+
+def correction_contradiction(text: str, hits):
+    """정정 이력이 있는 문서를 '정정되지 않았다'고 서술했는가."""
+    if not text:
+        return None
+    has_chain = any(rec.get("supersedes") or rec.get("superseded_by")
+                    for rec, _ in hits or ())
+    if not has_chain:
+        return None
+    for s in split_sentences(text):
+        if _NO_CORRECTION_RE.search(s):
+            return s
+    return None
 
 
 def ground_answer(answer: str, context: str, hits, allowed, trace):
@@ -1491,8 +1651,7 @@ def pct_gate(answer: str, pcts, trace):
     return out
 
 
-def verify_gate(answer: str, expected, trace, display="",
-                displays=()):
+def verify_gate(answer: str, expected, trace, display="", displays=(), grounded=None):
     """검산 게이트 — 불일치 답변을 그대로 내보내지 않는다.
 
     감지만 하고 통과시키면 틀린 수치가 그대로 채점된다(2025년 매출액을
@@ -1504,17 +1663,34 @@ def verify_gate(answer: str, expected, trace, display="",
     # 요청 단위로 환산해 답한 경우(억원 단위 요구)도 통과시킨다. 원 단위 값만
     # 인정하면 정답을 쓴 답변이 차단된다(E2).
     alts = [d for d in ([display] + list(displays)) if d]
-    if verify_number(answer, expected) or any(answer_has_number(answer, d) for d in alts):
-        return answer
     # 게이트는 답변이 "다른 숫자를 주장할 때"만 발동한다. 한계 고지·거절처럼
     # 수치를 주장하지 않는 답변은 불일치가 아니다.
     if not asserts_number(answer):
         trace.append("[검산] 답변이 수치를 주장하지 않음 — 게이트 통과")
         return answer
 
-    found = _BIGNUM_RE.findall(answer)[:3]
-    trace.append(f"[검산-차단] 코드값 {Decimal(expected):,.0f}, "
-                 f"답변값 {', '.join(found) or '없음'} — 수치 확정 불가")
+    # 설명형 답변은 여러 수치를 정당하게 주장한다. expected 하나와 대조하면
+    # 질문이 제시한 값을 검산한 정답이 지워진다(E03의 223,953). 답변의 각
+    # 수치가 (a) 컨텍스트 (b) 코드 계산 결과 (c) 질문 제시값 중 하나에
+    # 속하면 통과시키고, 셋 다 아닌 수치만 차단한다. expected는 (b)의 원소다.
+    ok = set(grounded or ())
+    if expected is not None:
+        ok.add(_digits(f"{Decimal(expected):.0f}"))
+    ok |= {_digits(d) for d in alts}
+    if ok:
+        stray = [t for t in _BIGNUM_RE.findall(answer)
+                 if _digits(t.strip(",")) not in ok
+                 and not ("," not in t and len(_digits(t)) in (8, 14))]
+        if not stray:
+            return answer
+        trace.append(f"[검산-차단] 근거·계산·질문 어디에도 없는 수치 "
+                     f"{', '.join(stray[:3])} — 수치 확정 불가")
+    else:
+        if verify_number(answer, expected) or any(answer_has_number(answer, d) for d in alts):
+            return answer
+        found = _BIGNUM_RE.findall(answer)[:3]
+        trace.append(f"[검산-차단] 코드값 {Decimal(expected):,.0f}, "
+                     f"답변값 {', '.join(found) or '없음'} — 수치 확정 불가")
 
     correct = display or format_krw(expected)
     m = _NUM_WITH_UNIT_RE.search(answer)
@@ -1730,7 +1906,21 @@ def answer_one_stage(question: str, hits, trace):
     if mism:
         trace.append(f"[5!] 출처 불일치 — {mism}")
     ans = fix_answer_units(ans, ctx, trace)
-    ans = ground_answer(ans, ctx, hits, set(), trace)
+    q_nums = {_digits(t) for t in re.findall(r"\d[\d,]{3,}", question)}
+    ans = ground_answer(ans, ctx, hits, q_nums, trace)
+    anchors = build_anchors(ctx, question, (), hits)
+    ans = anchor_filter_answer(ans, anchors, trace)
+    anchor_report_trace(model_trace, anchors, trace)
+    bad_corr = correction_contradiction(ans, hits)
+    if bad_corr:
+        ans = renumber(ans.replace(bad_corr, " "))
+        trace.append(f"[정정-모순] 정정 이력이 있는 문서를 미정정으로 서술 — 문장 제거: "
+                     f"{bad_corr[:50]}")
+        if not has_direct_answer(ans):
+            ans = ANCHOR_BLOCK_MSG
+    bad_corr_trace = correction_contradiction(model_trace, hits)
+    if bad_corr_trace:
+        trace.append(f"[정정-모순] trace가 정정 이력을 부정함: {bad_corr_trace[:60]}")
     if truncated(ans):
         trace.append("[5!] 응답 잘림 추정(문장 미완) — 재요청하지 않음")
     leaks = leaked_structure(ans)
@@ -1875,9 +2065,16 @@ def answer_single_company(question: str, hits, trace):
     # 코드가 합산하지 않은 경우에도 모델이 옳게 더한 값은 허용한다(A1).
     allowed_nums |= combo_values(values) | combo_values(shares)
 
-    if len(values) >= 2 and wants_sum(question, values, ext_g):
+    if len(values) == 2 and wants_diff(question):
+        diff = abs(values[0] - values[1])
+        expected = diff
+        calc_lines.append(f"차액: |{values[0]:,.0f} - {values[1]:,.0f}| = {format_krw(diff)}")
+        allowed_nums |= (unit_variants(diff) | unit_variants(values[0])
+                         | unit_variants(values[1]))
+        trace.append(f"[4+] 코드 차액: {values[0]:,.0f} - {values[1]:,.0f} = {diff:,.0f}")
+    elif len(values) >= 2 and wants_sum(question, values, ext_g):
         expected, total_s = sum_krw(values)
-        allowed_nums |= {f"{v:.0f}" for v in values}
+        allowed_nums |= {d for v in values for d in unit_variants(v)}
         terms = " + ".join(f"{v:,.0f}" for v in values)
         calc_lines.append(f"합계: {terms} = {total_s}")
         allowed_nums.add(f"{expected:.0f}")
@@ -1954,6 +2151,15 @@ def answer_single_company(question: str, hits, trace):
                 f"{y}년 {series[y]:,.0f}원" for y in yrs))
             calc_lines.append(
                 f"연평균 성장률(CAGR, {yrs[0]}→{yrs[-1]}, {int(yrs[-1]) - int(yrs[0])}년): {g}%")
+            # 총 증감률과 연평균은 다른 값이다. 질문이 증감률을 물으면 둘을
+            # 구분해 싣는다 — 라벨 하나만 주면 모델이 그것을 증감률로 옮겨 적는다.
+            total_pct = ((Decimal(series[yrs[-1]]) / Decimal(series[yrs[0]]) - 1)
+                         * 100).quantize(Decimal("0.01"))
+            calc_lines.append(
+                f"총 증감률({yrs[0]}→{yrs[-1]}): {total_pct}% "
+                f"(연평균 {g}%와 다른 값이다. '증감률'을 물었으면 총 증감률을 쓴다)")
+            allowed_nums.add(_digits(str(total_pct)))
+            trace.append(f"[4+] 코드 총 증감률({yrs[0]}→{yrs[-1]}): {total_pct}%")
             allowed_nums |= {f"{v:.0f}" for v in series.values()}
             allowed_nums.add(_digits(str(g)))
             trace.append(f"[4+] 코드 CAGR({yrs[0]}→{yrs[-1]}): {g}%")
@@ -2026,7 +2232,7 @@ def answer_single_company(question: str, hits, trace):
     # 검산 게이트가 답변에 심는 코드값도 코드 계산 결과다. 허용 목록에 없으면
     # 바로 다음 단계인 사후 검증이 그것을 환각으로 판정한다(H7).
     if expected is not None:
-        allowed_nums.add(f"{Decimal(expected):.0f}")
+        allowed_nums |= unit_variants(expected)
     ans = pct_gate(ans, pcts, trace)
     # 기준이 둘이면 하나만 답하면 절반이다. 빠진 기준은 코드가 병기한다.
     if len(pcts) >= 2 and ans and any(
@@ -2039,9 +2245,28 @@ def answer_single_company(question: str, hits, trace):
                 if expected is not None else [])
     display = displays[0] if displays else ""
     allowed_nums |= {_digits(d) for d in displays}
-    ans = verify_gate(ans, expected, trace, display, displays)
+    # (a) 컨텍스트 (b) 코드 계산 결과 (c) 질문 제시 수치 — 셋의 합집합
+    grounded = ({_digits(t) for t in re.findall(r"\d[\d,]{3,}", ctx)}
+                | {_digits(t) for t in re.findall(r"\d[\d,]{3,}", question)}
+                | set(allowed_nums))
+    ans = verify_gate(ans, expected, trace, display, displays, grounded)
     ans = fix_answer_units(ans, ctx, trace)
-    ans = ground_answer(ans, ctx, hits, allowed_nums, trace)
+    ans = ground_answer(ans, ctx, hits, allowed_nums | {_digits(t) for t in
+                                                        re.findall(r"\d[\d,]{3,}", question)},
+                        trace)
+    anchors = build_anchors(ctx, question, values + shares, hits)
+    ans = anchor_filter_answer(ans, anchors, trace)
+    anchor_report_trace(model_trace, anchors, trace)
+    bad_corr = correction_contradiction(ans, hits)
+    if bad_corr:
+        ans = renumber(ans.replace(bad_corr, " "))
+        trace.append(f"[정정-모순] 정정 이력이 있는 문서를 미정정으로 서술 — 문장 제거: "
+                     f"{bad_corr[:50]}")
+        if not has_direct_answer(ans):
+            ans = ANCHOR_BLOCK_MSG
+    bad_corr_trace = correction_contradiction(model_trace, hits)
+    if bad_corr_trace:
+        trace.append(f"[정정-모순] trace가 정정 이력을 부정함: {bad_corr_trace[:60]}")
     if truncated(ans):
         trace.append("[5!] 응답 잘림 추정(구분자 없음 + 문장 미완) — 재요청하지 않음")
     leaks = leaked_structure(ans)
@@ -2202,6 +2427,16 @@ def answer_question(question_id: str, question: str) -> dict:
 
     res = ret.search(question, topk=TOPK, companies=companies)
     hits = res["hits"]
+    _REQ["tier_demoted"] = res.get("tier_demoted") or []
+    _REQ["section_route"] = res.get("section_route") or []
+    _REQ["hit_tiers"] = [r.get("evidence_tier") for r, _ in hits]
+    for note in _REQ["section_route"]:
+        trace.append(note)
+    if _REQ["tier_demoted"]:
+        trace.append("[3!] 증거 위계 강등: "
+                     + ", ".join(dict.fromkeys(
+                         f"{(r.get('section_path') or r.get('report_nm') or '').split(' > ')[-1]}"
+                         f"(tier {r.get('evidence_tier')})" for r in _REQ["tier_demoted"]))[:160])
     # 건수 질문은 검색된 청크 조각으로 세면 틀린다(정정 감점으로 원본이 빠지면 더).
     # 인덱스 전체에서 코드가 직접 세어 사실로 넘긴다.
     _REQ["counted"] = (count_disclosures(question, companies[0], ret)
