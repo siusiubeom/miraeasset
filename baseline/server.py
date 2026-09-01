@@ -23,6 +23,13 @@ _cache = {}          # question_id → response dict
 _cache_lock = threading.Lock()
 
 
+# 실패 응답에 붙이는 표식 — 이 응답은 캐시하지 않는다.
+# 주최측은 타임아웃·5xx에서 최대 2회 재시도한다(규격 2-3). 실패를 캐시하면
+# 재시도가 같은 실패를 돌려받아 재시도가 무의미해진다. ngrok 경유에서 502·503이
+# 실제로 관측됐으므로 가정이 아니다.
+_FAIL = "_fail"
+
+
 def safe_answer(question_id: str, question: str) -> dict:
     """타임아웃·예외에도 항상 규격 JSON을 돌려준다."""
     result = {}
@@ -32,6 +39,7 @@ def safe_answer(question_id: str, question: str) -> dict:
             result["resp"] = answer_question(question_id, question)
         except Exception as e:
             result["resp"] = {
+                _FAIL: True,
                 "question_id": question_id, "question": question,
                 "retrieved_context": "", "think_trace": f"internal error: {type(e).__name__}: {e}",
                 "answer": "일시적인 내부 오류로 답변을 생성하지 못했습니다. 제공된 공시에서 확인되지 않습니다.",
@@ -42,6 +50,7 @@ def safe_answer(question_id: str, question: str) -> dict:
     t.join(GUARD_SEC)
     if "resp" not in result:
         return {
+            _FAIL: True,
             "question_id": question_id, "question": question,
             "retrieved_context": "", "think_trace": f"timeout: {GUARD_SEC}s 내 파이프라인 미완료",
             "answer": "제한 시간 내에 답변을 완성하지 못했습니다. 제공된 공시에서 확인되지 않습니다.",
@@ -85,9 +94,12 @@ class Handler(BaseHTTPRequestHandler):
         t0 = time.time()
         resp = safe_answer(qid, question)
         self.log_message("answered %s in %.1fs", qid, time.time() - t0)
-        if qid:
+        # 실패 응답은 캐시하지 않는다 — 재시도가 같은 실패를 받으면 안 된다.
+        if qid and not resp.pop(_FAIL, False):
             with _cache_lock:
                 _cache[qid] = resp
+        else:
+            resp.pop(_FAIL, None)
         self._send_json(resp)
 
     def log_message(self, fmt, *args):  # 기본 stderr 로그 유지하되 타임스탬프 포함
