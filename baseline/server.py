@@ -12,7 +12,7 @@
 
 실행:  py server.py [port]   (기본 8080; 운영 시 80)
 """
-import json, sys, threading, time
+import json, os, sys, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -95,7 +95,8 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
+    # Render·Heroku류 PaaS는 $PORT로 포트를 지정한다. 인자가 우선.
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", "8080"))
     get_retriever()  # 유니버스/정정링크 선로딩 (인덱스는 질의 시 lazy)
     srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     print(f"listening on :{port}  (GET /answer, /health)", flush=True)

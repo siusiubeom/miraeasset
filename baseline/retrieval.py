@@ -5,7 +5,7 @@
 - 회사 라우팅: universe.csv의 listed/corp 명 + 수동 별칭으로 질문에서 회사 탐지
 - 회사별 청크 파일(processed/chunks/<listed>.jsonl)만 로드해 BM25 검색
 """
-import csv, json, math, os, re, sys
+import csv, gzip, json, math, os, re, sys
 from collections import Counter, OrderedDict
 from pathlib import Path
 
@@ -226,8 +226,14 @@ class Retriever:
         if listed in self._cache:
             self._cache.move_to_end(listed)
             return self._cache[listed]
+        # 배포 환경에서는 청크를 gzip으로 싣는다(1.5GB → 약 240MB). 둘 다 지원.
         path = CHUNK_DIR / f"{listed}.jsonl"
-        recs = [json.loads(l) for l in path.open(encoding="utf-8")]
+        if path.exists():
+            fh = path.open(encoding="utf-8")
+        else:
+            fh = gzip.open(CHUNK_DIR / f"{listed}.jsonl.gz", "rt", encoding="utf-8")
+        with fh:
+            recs = [json.loads(l) for l in fh if l.strip()]
         for r in recs:  # 정정으로 대체된 원본임을 청크에 표시 (답변 생성 시에도 활용)
             r["superseded_by"] = self.superseded.get(r["rcept_no"], [])
             r["supersedes"] = self.supersedes.get(r["rcept_no"], [])

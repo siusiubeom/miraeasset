@@ -7,10 +7,11 @@ DART 공시 코퍼스(70개사, 4,204건) 기반 질의응답 Agent.
 
 ## 평가용 API End-point (필수 제출 항목)
 
-> **End-point:** `http://<공인IP>/answer`
+> **End-point:** `https://preoccupy-distort-jujitsu.ngrok-free.dev/answer`
 >
-> ⚠️ **TODO: 서버 배포 후 위 `<공인IP>` 를 실제 주소로 교체할 것. 이 표시가 남아 있으면 제출 불가.**
-> (표준 포트 사용: HTTP 80 — 포트 표기 생략 / 도메인 없이 공인 IP 직접 접근)
+> HTTPS 443 표준 포트이므로 포트 표기를 생략합니다. 개인 환경에서 서버를 운영하고
+> ngrok 고정 도메인으로 외부에 노출했습니다 — 평가 규격이 명시적으로 허용하는 방식입니다
+> (평가API_규격_및_QA.md: "개인 환경 구성 시 ngrok 등 터널링 서비스 자유롭게 활용 가능").
 
 ### 호출 방법 (주최측 평가 규격)
 
@@ -19,7 +20,7 @@ GET {end-point}/answer?question_id={질의 ID}&question={평가 질의}
 ```
 
 ```bash
-curl -G "http://<공인IP>/answer" \
+curl -G "https://preoccupy-distort-jujitsu.ngrok-free.dev/answer" \
   --data-urlencode "question_id=Q-001" \
   --data-urlencode "question=삼성전자의 2025년 연결기준 매출액은 얼마인가?"
 ```
