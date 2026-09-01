@@ -96,6 +96,12 @@ NUMERIC_QUESTION_RE = re.compile(
     r"총액|자본금|액면|주식수|주식\s?총수|단가|수량")
 
 
+# 경영진단·부문 서술 절에만 있는 정확한 수치가 있다(부문별 실적, 기재 비중).
+# 이 유형의 질문에서는 서술형(tier 5) 강등을 완화한다 — 강등하면 답이 사라진다.
+NARRATIVE_OK_QUESTION_RE = re.compile(r"부문|세그먼트|비중|사업부")
+TIER5_RELAXED = 0.9
+
+
 def use_section_route() -> bool:
     """지정형 경로. 기본 켜짐, USE_SECTION_ROUTE=0으로 끈다.
 
@@ -243,6 +249,7 @@ class Retriever:
         wants_quarter = bool(re.search(r"분기|반기|Q[1-4]", question))
         tier_on = use_evidence_tier() and bool(NUMERIC_QUESTION_RE.search(question))
         tier_mult = {}   # chunk_id → 적용된 위계 배율 (기각 서술의 재료)
+        narrative_ok = bool(NARRATIVE_OK_QUESTION_RE.search(question or ""))
 
         def prior(rec):
             mult = 1.0
@@ -267,6 +274,8 @@ class Retriever:
             # 추정 등급(tier_confident=False)으로는 순위를 흔들지 않는다.
             if tier_on and rec.get("tier_confident"):
                 w = TIER_WEIGHT.get(rec.get("evidence_tier"), 1.0)
+                if rec.get("evidence_tier") == 5 and narrative_ok:
+                    w = max(w, TIER5_RELAXED)
                 tier_mult[rec["chunk_id"]] = w
                 mult *= w
             return mult

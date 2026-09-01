@@ -10,8 +10,10 @@ import json, os, re, time, urllib.error, urllib.request
 from decimal import Decimal, InvalidOperation
 from itertools import combinations, permutations
 from pathlib import Path
-from anchor_check import (UNANCHORED_TRACE_RATIO, build_anchors, has_direct_answer,
-                          renumber, split_sentences, unanchored_sentences)
+import aggregate_tools as AGG
+from anchor_check import (UNANCHORED_TRACE_RATIO, amount_variants, build_anchors,
+                          has_direct_answer, renumber, split_sentences,
+                          unanchored_sentences)
 from evidence_tier import tier_label
 from retrieval import Retriever
 
@@ -145,6 +147,23 @@ SYSTEM_PROMPT = """당신은 금융감독원 전자공시(DART) 원문만을 근
 두 구획 표지([판단], [답변])는 대괄호까지 그대로 쓴다. 앞뒤에 설명, 코드펜스,
 JSON, 다른 텍스트를 붙이지 않는다.
 
+## 2-0. 읽는 순서
+
+판단을 쓰기 전에 이 순서로 근거를 읽는다.
+
+(1) 질문의 지표어를 정한다. 매출액, 영업이익, 취득예정금액, 지분율 같은 것.
+(2) 근거에서 그 지표어가 행 이름으로 들어간 표를 먼저 찾는다. 표가 있으면 표의
+    값을 쓴다. 서술문에 같은 지표가 어림수로 나와도 표를 택한다.
+(3) 표에서 지표어 행을 찾되, 찾지 못해도 입력의 추출값·계산값을 부정하지 마라.
+    추출값의 지표가 불확실하면 그 불확실성을 판단에 쓰고 값은 제시한다.
+    "근거에 {지표어} 행이 명시되지 않아 추출값을 그대로 인용했다"
+(4) 질문이 원인이나 이유를 물으면, 근거에서 그 원인을 명시한 문장을 찾는다.
+    "~로 인하여", "~때문에", "사유는", "~에 따른" 같은 표현이 붙은 자리다.
+    찾으면 그 문장의 표현을 그대로 옮기고, 못 찾으면 추론하지 말고 확인되지
+    않는다고 쓴다.
+
+일반적인 회계 지식으로 원인을 설명하지 마라. 근거에 적힌 원인만 쓴다.
+
 ## 2. [판단] 구획 — 산문 1~2단락
 
 첫 줄은 반드시 "소제목: "으로 시작하는 한 구절이다. 그 회사 그 공시에만 붙는
@@ -224,8 +243,16 @@ JSON, 다른 텍스트를 붙이지 않는다.
      증감률을 계산하지 않는다 (적자지속/적자전환/흑자전환).
 [T5] 복합·이력 — 시간순으로(원공시 → 정정 → 후속). 정정본이 여럿이면 체인
      말단이 최종본, 동일자 다중 정정은 접수번호 최후순위 — 선택 근거를 쓴다.
-[T6] 경계 — 아는 척은 이 시스템의 유일한 치명상이다. 거절만 하면 절반이다.
-     거절 + 확인 가능한 인접 사실 + 필요 시 역질문의 3박자.
+[T6] 경계 — 거절할 때 왜 없는지를 특정한다.
+     폐기됨    정정으로 대체되어 채택하지 않았다
+     범위 밖   대상 70개사에 포함되지 않는다
+     기간 밖   수집 범위를 벗어난다
+     유형 없음 해당 공시 유형이 수집 대상에 포함되어 있지 않다
+     항목 부재 조회된 공시에 그 항목이 기재되어 있지 않다
+     정책상    예측·투자의견은 생성하지 않는다
+     개인정보  개인정보에 해당해 제외했다
+     "확인되지 않습니다"만 쓰지 마라. 어느 쪽인지 밝히고 확인 가능한 인접 사실을
+     붙인다. 답할 수 없는 것과 답하지 않기로 한 것은 다른 사건이다.
 
 ## 5. 원본 정보를 생성하지 않는다
 
@@ -247,8 +274,8 @@ JSON, 다른 텍스트를 붙이지 않는다.
 아님), 장내매수/장내매도, 자기주식 취득 결정, 단일판매·공급계약 체결,
 보유목적: 단순투자목적/경영권 영향.
 
-금지: 평가와 전망에 해당하는 표현 일체. 미래시제 전면 금지 — 공시에 적힌 미래
-일정은 "계약기간은 ~로 기재되어 있습니다"로만 쓴다.
+평가와 전망에 해당하는 표현은 쓰지 않는다. 미래시제 전면 금지. 공시에 적힌
+미래 일정은 "계약기간은 ~로 기재되어 있습니다"로만 쓴다.
 
 숫자: YoY 기본, 분기는 누적/3개월 구분 명기, 비중은 "매출액 대비 X.X%".
 
@@ -286,6 +313,21 @@ Q: 삼성전자의 2024년 11월 자기주식 취득 결정 금액은?
 (주요사항보고서(자기주식취득결정), 2024-11-18 접수, 접수번호 20241118000328)
 ※ 본 수치는 2024-11-18 기재정정 반영값입니다.
 ※ 이사회 결의 시점의 취득 예정 금액이며, 실제 취득 완료 금액과는 다를 수 있습니다.
+
+### 예시 3 — 표에서 값과 원인을 함께 꺼내기
+
+Q: 삼성전자의 발행주식 액면총액과 납입자본금이 다른 이유는?
+
+[판단]
+소제목: 자본금 주석의 이익소각 기재
+자본금 주석에 액면총액 673,561백만원과 납입자본금 897,514백만원이 나란히
+기재되어 있고, 같은 문장이 "이익소각으로 인하여" 두 값이 상이하다고 밝히고 있다.
+차액 223,953백만원은 코드 계산값을 인용했다. 이익소각이 자본금에 미치는 효과를
+회계 일반론으로 설명하지 않고 주석의 기재 표현을 그대로 취했다.
+[답변]
+발행주식 액면총액 673,561백만원과 납입자본금 897,514백만원의 차액은
+223,953백만원이며, 주석에 이익소각으로 인한 것으로 기재되어 있습니다.
+(사업보고서 2025.12, 접수번호 20260310002820, III. 재무에 관한 사항 > 자본금)
 
 (T6 정보한계·투자의견 거절은 코드 경로가 정형 답변을 만들므로 예시를 두지 않는다.)
 
@@ -385,22 +427,47 @@ def call_stats():
     """이번 요청의 호출별 (라벨, input 추정, maxTokens) 목록과 TPM 합계."""
     calls = _REQ["calls"]
     return {"n_calls": len(calls), "calls": calls,
+            "params": calls[0]["params"] if calls else {},
             "tpm_cost": sum(c["input_est"] + c["max_tokens"] for c in calls)}
+
+
+# 샘플링 파라미터를 서버 기본값에 맡기면 temperature=0으로도 후보 샘플링이 남는다.
+# topP·topK·repeatPenalty를 중립값으로 명시하고 seed를 고정한다.
+# CLOVA에서 seed=0은 "랜덤"을 뜻할 수 있으므로 0이 아닌 값을 기본으로 둔다.
+DEFAULT_SEED = 20260906
+
+
+def request_params(label: str, max_tokens: int) -> dict:
+    """호출 성격별 요청 파라미터. 추출은 값 복사라 결정론이 필요하다."""
+    kind = "extract" if "extract" in label else "answer"
+    temp_env = f"CLOVA_TEMP_{kind.upper()}"
+    temperature = float(os.environ.get(
+        temp_env, os.environ.get("CLOVA_TEMPERATURE", "0")))
+    return {
+        "maxTokens": max_tokens,
+        "temperature": temperature,
+        "topP": float(os.environ.get("CLOVA_TOP_P", "1.0")),
+        "topK": int(os.environ.get("CLOVA_TOP_K", "0")),
+        "repeatPenalty": float(os.environ.get("CLOVA_REPEAT_PENALTY", "1.0")),
+        "seed": int(os.environ.get("CLOVA_SEED", str(DEFAULT_SEED))),
+    }
 
 
 def call_clova_raw(system: str, user: str, max_tokens: int = None, label: str = "call") -> str:
     max_tokens = max_tokens or int(os.environ.get("CLOVA_MAX_TOKENS", "1024"))
+    params = request_params(label, max_tokens)
     payload = json.dumps({
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        "maxTokens": max_tokens,
-        "temperature": float(os.environ.get("CLOVA_TEMPERATURE", "0")),
+        **params,
     }, ensure_ascii=False).encode("utf-8")
 
     input_est = est_tokens(system) + est_tokens(user)
-    _REQ["calls"].append({"label": label, "input_est": input_est, "max_tokens": max_tokens})
+    # 무엇으로 돌린 결과인지 나중에 추적할 수 있어야 한다.
+    _REQ["calls"].append({"label": label, "input_est": input_est,
+                          "max_tokens": max_tokens, "params": params})
     # 계측은 항상 call_stats()로 집계 가능하지만, 채점 대상인 think_trace를
     # 토큰 로그로 오염시키지 않도록 trace 기록은 환경변수로 켠다.
     if os.environ.get("CLOVA_TOKEN_LOG"):
@@ -585,6 +652,25 @@ def truncated(answer: str) -> bool:
 _LEAK_TAIL_RE = re.compile(
     r"[(\[]?\s*(?:코드 계산 결과|판정 이력|출처 절|근거 발췌|연도 열 판정)\s*"
     r"(?:참조|참고|에 따름)?\s*[)\]]?")
+
+
+# 값이 채워지지 않은 채 남은 템플릿 — "※ 본 수치는입니다.", "(출처: )"
+_EMPTY_TEMPLATE_RES = (
+    re.compile(r"※\s*본\s*수치는\s*(?:입니다|반영값입니다)[.。]?\s*"),
+    re.compile(r"\(\s*출처\s*:\s*\)\s*"),
+)
+
+
+def strip_empty_templates(answer: str, trace=None):
+    """자리표시자만 남은 문장을 지운다. 값이 없으면 문장 자체를 내보내지 않는다."""
+    out = answer or ""
+    hit = 0
+    for rx in _EMPTY_TEMPLATE_RES:
+        out, n = rx.subn("", out)
+        hit += n
+    if hit and trace is not None:
+        trace.append(f"[정리] 값이 비어 있는 템플릿 문장 {hit}개 제거")
+    return re.sub(r"[ 	]{2,}", " ", out).strip()
 
 
 def strip_leaked_labels(answer: str) -> str:
@@ -811,14 +897,15 @@ def context_number_set(context: str):
     return {_digits(t) for t in re.findall(r"\d[\d,]*", context or "")}
 
 
-def grounded_extract(extract: str, context: str, trace=None):
+def grounded_extract(extract: str, context: str, trace=None, extra_nums=()):
     """근거에 없는 수치가 든 '값:' 줄을 걷어낸 추출 결과.
 
     모델이 분모를 지어내면(E1: 56,156,654 — 컨텍스트에 없다) 코드 계산이 그
     지어낸 값을 그대로 신뢰한다. 계산에 들어가기 전에 입력 쪽에서 막는다.
     접수번호(14자리)·접수일(8자리)은 수치가 아니라 출처 표기이므로 제외한다.
     """
-    nums = context_number_set(context)
+    # 질문이 조·억으로 제시한 금액은 컨텍스트와 표기가 다르다. 단위 변형을 함께 허용한다.
+    nums = context_number_set(context) | {_digits(x) for x in (extra_nums or ())}
     keep, dropped = [], []
     for ln in (extract or "").splitlines():
         if not ln.strip().startswith("값:"):
@@ -1518,7 +1605,7 @@ def _is_system_message(text: str) -> bool:
 _NO_CORRECTION_RE = re.compile(r"정정되지\s?않|변경되지\s?않|수정되지\s?않|정정\s?없이\s?유지")
 
 
-def anchor_filter_answer(answer: str, anchors, trace):
+def anchor_filter_answer(answer: str, anchors, trace, context=""):
     """근거에 닿지 않는 문장을 답변에서 제거한다.
 
     "이 표현이 나오면 지운다"가 아니라 "근거에 닿지 않으면 못 내보낸다".
@@ -1526,7 +1613,7 @@ def anchor_filter_answer(answer: str, anchors, trace):
     """
     if not answer or not use_anchor_check() or _is_system_message(answer):
         return answer
-    bad = unanchored_sentences(answer, anchors)
+    bad = unanchored_sentences(answer, anchors, context=context)
     if not bad:
         return answer
     total = len([x for x in split_sentences(answer) if len(x) >= 30])
@@ -1547,7 +1634,7 @@ def anchor_filter_answer(answer: str, anchors, trace):
     return kept
 
 
-def anchor_report_trace(model_trace: str, anchors, trace):
+def anchor_report_trace(model_trace: str, anchors, trace, context=""):
     """trace는 판단의 기록이라 연결·판정 문장이 정당하게 접지 없이 나온다.
 
     제거하지 않고 기록만 한다. 비율이 절반을 넘으면 일반론으로 채운 신호다.
@@ -1557,7 +1644,7 @@ def anchor_report_trace(model_trace: str, anchors, trace):
     sents = [s for s in split_sentences(model_trace) if len(s) >= 30]
     if not sents:
         return
-    bad = unanchored_sentences(model_trace, anchors)
+    bad = unanchored_sentences(model_trace, anchors, context=context)
     trace.append(f"[접지!] trace 미접지 문장 {len(bad)}개 (전체 {len(sents)}개 중)")
     if len(bad) / len(sents) > UNANCHORED_TRACE_RATIO:
         trace.append(f"[접지!!] trace 미접지 비율 {100 * len(bad) / len(sents):.0f}% "
@@ -1909,8 +1996,8 @@ def answer_one_stage(question: str, hits, trace):
     q_nums = {_digits(t) for t in re.findall(r"\d[\d,]{3,}", question)}
     ans = ground_answer(ans, ctx, hits, q_nums, trace)
     anchors = build_anchors(ctx, question, (), hits)
-    ans = anchor_filter_answer(ans, anchors, trace)
-    anchor_report_trace(model_trace, anchors, trace)
+    ans = anchor_filter_answer(ans, anchors, trace, ctx)
+    anchor_report_trace(model_trace, anchors, trace, ctx)
     bad_corr = correction_contradiction(ans, hits)
     if bad_corr:
         ans = renumber(ans.replace(bad_corr, " "))
@@ -1927,6 +2014,7 @@ def answer_one_stage(question: str, hits, trace):
     if leaks:
         ans = strip_leaked_labels(ans)
         trace.append(f"[5!] 입력 구조 노출 감지 — 제거함: {leaks}")
+    ans = strip_empty_templates(ans, trace)
     ans = strip_opinion_sentences(ans, trace)
     if hops >= 2:
         reached = len(re.findall(r"(?:최대주주|모회사|지배기업|지주회사)", ans or ""))
@@ -1977,7 +2065,8 @@ def answer_single_company(question: str, hits, trace):
             if rounded:
                 trace.append("[4!] 재추출도 어림수 — 코드 환산 생략, 표 기재값 확인 필요 문구 부기")
 
-    ext_g = grounded_extract(ext, ctx, trace)
+    q_amounts = amount_variants(question)
+    ext_g = grounded_extract(ext, ctx, trace, q_amounts)
     values = [] if rounded else parse_krw_all(ext_g, ctx)
     shares = [] if rounded else parse_shares_all(ext_g)
     # 계산 상태 — 값의 유무(None) 하나로 뭉개면 '계산 불필요'와 '추출 실패'와
@@ -2011,7 +2100,7 @@ def answer_single_company(question: str, hits, trace):
             EXTRACT_SYSTEM,
             f"[발췌]\n{ctx}\n\n[질문]\n{question}\n\n{EXTRACT_INSTRUCT}\n{RATIO_REEXTRACT_INSTRUCT}",
             max_tokens=MAXTOK_EXTRACT, label="re-extract-ratio")
-        ext_rg = grounded_extract(ext_r, ctx, trace) if ext_r else ""
+        ext_rg = grounded_extract(ext_r, ctx, trace, q_amounts) if ext_r else ""
         vals_r = parse_krw_all(ext_rg, ctx)
         shrs_r = parse_shares_all(ext_rg)
         if len(vals_r) >= 2 or len(shrs_r) >= 2:
@@ -2147,22 +2236,31 @@ def answer_single_company(question: str, hits, trace):
             trace.append(f"[4!] 적자 구간 포함({', '.join(neg)}) — CAGR 계산 생략")
         elif g is not None:
             yrs = list(series)
+            span = int(yrs[-1]) - int(yrs[0])
             calc_lines.append("연도별 값: " + ", ".join(
                 f"{y}년 {series[y]:,.0f}원" for y in yrs))
-            calc_lines.append(
-                f"연평균 성장률(CAGR, {yrs[0]}→{yrs[-1]}, {int(yrs[-1]) - int(yrs[0])}년): {g}%")
+            # 1년 구간에서는 CAGR과 총 증감률이 수학적으로 같은 값이다. 같은 숫자에
+            # 라벨 둘을 붙여 넘기면 모델이 뒤섞는다(L9: "97.99% 증가, 이는 CAGR").
+            # 2년 이상일 때만 둘을 함께 싣고, 그때도 구간을 명시한다.
+            if span >= 2:
+                calc_lines.append(
+                    f"연평균 성장률(CAGR, {yrs[0]}→{yrs[-1]}, 구간 {span}년): {g}%")
             # 총 증감률과 연평균은 다른 값이다. 질문이 증감률을 물으면 둘을
             # 구분해 싣는다 — 라벨 하나만 주면 모델이 그것을 증감률로 옮겨 적는다.
             total_pct = ((Decimal(series[yrs[-1]]) / Decimal(series[yrs[0]]) - 1)
                          * 100).quantize(Decimal("0.01"))
             calc_lines.append(
-                f"총 증감률({yrs[0]}→{yrs[-1]}): {total_pct}% "
-                f"(연평균 {g}%와 다른 값이다. '증감률'을 물었으면 총 증감률을 쓴다)")
+                f"총 증감률({yrs[0]}→{yrs[-1]}, 구간 {span}년): {total_pct}%"
+                + (f" (연평균 {g}%와 다른 값이다. '증감률'을 물었으면 총 증감률을 쓴다)"
+                   if span >= 2 else
+                   " (구간이 1년이라 연평균 성장률과 같은 값이므로 CAGR은 싣지 않았다."
+                   " 이 값을 CAGR이라 부르지 말 것)"))
             allowed_nums.add(_digits(str(total_pct)))
             trace.append(f"[4+] 코드 총 증감률({yrs[0]}→{yrs[-1]}): {total_pct}%")
             allowed_nums |= {f"{v:.0f}" for v in series.values()}
-            allowed_nums.add(_digits(str(g)))
-            trace.append(f"[4+] 코드 CAGR({yrs[0]}→{yrs[-1]}): {g}%")
+            if span >= 2:
+                allowed_nums.add(_digits(str(g)))
+                trace.append(f"[4+] 코드 CAGR({yrs[0]}→{yrs[-1]}, 구간 {span}년): {g}%")
         elif series:
             calc_lines.append("연도별 값: " + ", ".join(
                 f"{y}년 {series[y]:,.0f}원" for y in series))
@@ -2255,8 +2353,8 @@ def answer_single_company(question: str, hits, trace):
                                                         re.findall(r"\d[\d,]{3,}", question)},
                         trace)
     anchors = build_anchors(ctx, question, values + shares, hits)
-    ans = anchor_filter_answer(ans, anchors, trace)
-    anchor_report_trace(model_trace, anchors, trace)
+    ans = anchor_filter_answer(ans, anchors, trace, ctx)
+    anchor_report_trace(model_trace, anchors, trace, ctx)
     bad_corr = correction_contradiction(ans, hits)
     if bad_corr:
         ans = renumber(ans.replace(bad_corr, " "))
@@ -2273,6 +2371,7 @@ def answer_single_company(question: str, hits, trace):
     if leaks:
         ans = strip_leaked_labels(ans)
         trace.append(f"[5!] 입력 구조 노출 감지 — 제거함: {leaks}")
+    ans = strip_empty_templates(ans, trace)
     ans = strip_opinion_sentences(ans, trace)
     if hops >= 2:
         reached = len(re.findall(r"(?:최대주주|모회사|지배기업|지주회사)", ans or ""))
@@ -2392,6 +2491,202 @@ def answer_boundary(question_id: str, question: str) -> dict:
     }
 
 
+# ── 집계 질의 경로 ───────────────────────────────────────────────────────────
+# 집계는 top-k 검색으로 구조적으로 풀리지 않는다. top-k를 키우면 청크 재현율은
+# 오르지만 집계 정확도는 오르지 않고 노이즈가 쌓여 떨어지기도 한다. E05는 검색
+# 8건 기준 최대가 1,013,700,000,000원인데 전수 기준 최대는 1,095,900,000,000원이다.
+# '최대주주'의 '최대'가 극값으로 잡히면 E10 같은 나열 질의가 극값 경로로 샌다.
+EXTREMUM_QUESTION_RE = re.compile(
+    r"가장\s?(?:큰|작은|많은|적은)|최대(?!주주|출자)|최소|최초|최종본?|제일")
+# '전부·모두'만으로는 나열 의도가 아니다. E01의 "나머지는 모두 빼기다"가
+# 집계 경로로 샜다. 나열을 지시하는 표현이 있을 때만 잡는다.
+SORT_QUESTION_RE = re.compile(
+    r"시간순|순서대로|나열|정리해|재구성|목록|"
+    r"(?:전부|모두|전체)\s*(?:나열|정리|알려|보여|찾아|제시)")
+DISTINCT_QUESTION_RE = re.compile(r"유형별|사유별|각각\s?몇|분포|집계")
+
+# 질문의 공시 종류 → 원장 필터에 쓸 report_nm 패턴
+_AGG_REPORT_KEYWORDS = (
+    ("공급계약", r"공급계약"), ("수주", r"공급계약"),
+    ("자기주식", r"자기주식"), ("자사주", r"자기주식"),
+    ("최대주주", r"대량보유|최대주주"), ("대량보유", r"대량보유"),
+    ("지분", r"대량보유|주요사항"),
+    ("전환사채", r"전환사채"), ("유상증자", r"유상증자"),
+    ("합병", r"합병"), ("분할", r"분할"), ("배당", r"배당"),
+)
+# 극값을 뽑을 숫자 필드
+_AGG_FIELDS = (("계약", "계약금액"), ("취득", "취득예정금액"),
+               ("처분", "처분예정금액"), ("발행", "발행금액"))
+
+
+def use_aggregate_tools() -> bool:
+    """기본 켜짐. USE_AGGREGATE_TOOLS=0으로 끈다."""
+    return os.environ.get("USE_AGGREGATE_TOOLS", "1") not in ("0", "false", "False")
+
+
+def aggregate_intent(question: str):
+    """집계 질의 유형. 해당 없으면 None."""
+    if EXTREMUM_QUESTION_RE.search(question or ""):
+        return "extremum"
+    if DISTINCT_QUESTION_RE.search(question or ""):
+        return "distinct"
+    if SORT_QUESTION_RE.search(question or ""):
+        return "sort"
+    return None
+
+
+def aggregate_filters(question: str):
+    """질문에서 원장 필터를 만든다."""
+    f = {}
+    m = re.search(r"(20\d\d)\s*년", question or "")
+    if m:
+        f["year"] = m.group(1)
+    for key, pat in _AGG_REPORT_KEYWORDS:
+        if key in (question or ""):
+            f["report"] = pat
+            break
+    if "정정" in (question or ""):
+        f["correction"] = True
+    return f
+
+
+def _agg_field(question: str):
+    for key, field in _AGG_FIELDS:
+        if key in (question or ""):
+            return field
+    return "금액"
+
+
+def run_aggregate(kind, corp, question, ret, trace):
+    """도구 실행. 값을 못 뽑으면 None을 돌려 검색 경로로 폴백한다."""
+    filters = aggregate_filters(question)
+    if kind == "extremum":
+        mode = "min" if re.search(r"가장\s?(?:작은|적은)|최소", question) else "max"
+        res = AGG.extremum(corp, filters, _agg_field(question), mode, ret.superseded)
+        return res if res.get("picked") else None
+    if kind == "distinct":
+        res = AGG.distinct_count(corp, filters, "정정사유")
+        return res if res.get("n_parsed") else None
+    res = AGG.sort_by_date(corp, filters)
+    return res if res.get("n_docs") else None
+
+
+def aggregate_facts(kind, res, question):
+    """도구 결과를 모델에게 넘길 사실 절로."""
+    if kind == "extremum":
+        p = res["picked"]
+        lines = [f"조건에 맞는 문서 {res['n_docs']}건을 원장에서 전수 조회했고, 그중 "
+                 f"{res['n_parsed']}건에서 {res['field']}을 파싱했다.",
+                 f"{'최대' if res['mode'] == 'max' else '최소'}: {p['value']:,.0f}원 "
+                 f"— {p['report_nm']}, 접수일 {p['rcept_dt']}, 접수번호 {p['rcept_no']}"]
+        fx = p.get("fx")
+        if fx:
+            lines.append(f"채택 문서에 적힌 환율: 1{fx['currency']} = {fx['rate']}원"
+                         + (f" ({fx['basis_date']}일자 매매기준환율)" if fx["basis_date"] else "")
+                         + " — 환율은 계약 건마다 다르므로 다른 문서의 환율을 쓰지 말 것.")
+        else:
+            lines.append("채택 문서에서 환율 기재를 찾지 못했다. 다른 문서의 환율을 "
+                         "가져다 쓰지 말고 기재 없음으로 밝힐 것.")
+        if res.get("tied"):
+            lines.append("동일 값이 " + str(len(res["tied"])) + "건이다. 하나를 임의로 "
+                         "고르지 말고 동수임을 밝힐 것.")
+        lines.append("상위 목록: " + ", ".join(
+            f"{r['value']:,.0f}원({r['rcept_no']})" for r in res["rows"][:3]))
+        return "\n".join("- " + x for x in lines)
+    if kind == "distinct":
+        lines = [f"조건에 맞는 문서 {res['n_docs']}건을 전수 조회해 사유를 집계했다"
+                 f"(파싱 {res['n_parsed']}건, 미파싱 {res['missing']}건).",
+                 "유형별 건수: " + ", ".join(f"{k} {v}건" for k, v in res["counts"].items())]
+        if res["tied"]:
+            lines.append(f"최다 사유가 {', '.join(res['top'])} {res['top_n']}건으로 동수다. "
+                         f"하나를 고르지 말고 동수임을 밝힐 것.")
+        else:
+            lines.append(f"최다 사유: {res['top'][0]} {res['top_n']}건")
+        return "\n".join("- " + x for x in lines)
+    rows = res["rows"]
+    lines = [f"조건에 맞는 문서 {res['n_docs']}건 전체를 접수일순으로 나열한다."]
+    lines += [f"{r['rcept_dt'][:4]}-{r['rcept_dt'][4:6]}-{r['rcept_dt'][6:]} | "
+              f"{r['report_nm']} | 접수번호 {r['rcept_no']}"
+              + ("  [정정]" if r["is_correction"] else "") for r in rows]
+    return "\n".join("- " + x for x in lines)
+
+
+AGG_CONTEXT_DOCS = 8       # retrieved_context에 실을 문서 수 상한
+AGG_CONTEXT_CHARS = 1200   # 문서당 상한
+AGG_PICKED_CHARS = 3000    # 채택 문서는 더 넓게 — 환율·상대·기간이 뒤쪽에 있다
+
+
+def aggregate_context(corp, res, kind):
+    """집계에 쓰인 문서의 원문 일부 — retrieved_context로 남긴다."""
+    if kind == "extremum":
+        # 채택 문서를 맨 앞에 둔다. 뒤섞으면 모델이 다른 건의 값을 가져온다.
+        nos = [res["picked"]["rcept_no"]] + [
+            r["rcept_no"] for r in res["rows"][:AGG_CONTEXT_DOCS]
+            if r["rcept_no"] != res["picked"]["rcept_no"]]
+    elif kind == "distinct":
+        nos = [r["rcept_no"] for r in res["per_doc"][:AGG_CONTEXT_DOCS]]
+    else:
+        nos = [r["rcept_no"] for r in res["rows"][:AGG_CONTEXT_DOCS]]
+    parts, by_no = [], AGG.chunks_by_rcept(corp)
+    picked_no = (res.get("picked") or {}).get("rcept_no") if kind == "extremum" else None
+    for i, no in enumerate(nos, 1):
+        chunks = by_no.get(no) or []
+        limit = AGG_PICKED_CHARS if no == picked_no else AGG_CONTEXT_CHARS
+        body = "\n".join(c.get("text") or "" for c in chunks)[:limit]
+        nm = chunks[0].get("report_nm") if chunks else ""
+        label = "【채택 문서】" if no == picked_no else ""
+        parts.append(CTX_SEP.format(i=i, src=f"{label}{corp} | {nm} | 접수번호 {no}") + body)
+    return "".join(parts)
+
+
+def answer_aggregate(question_id, question, corp, ret, trace):
+    """집계 경로 — 검색이 아니라 원장 전수를 근거로 답한다. 실패 시 None."""
+    kind = aggregate_intent(question)
+    if not kind:
+        return None
+    # 원장 필터가 하나도 없으면 전수 조회의 범위가 회사 전체가 된다. 그런
+    # 질의는 집계가 아니라 설명일 가능성이 높으므로 검색 경로로 보낸다.
+    if not aggregate_filters(question):
+        return None
+    res = run_aggregate(kind, corp, question, ret, trace)
+    if not res:
+        trace.append("[집계!] 원장 전수 조회로 값을 뽑지 못함 → 검색 경로로 폴백")
+        return None
+    n = res.get("n_docs", 0)
+    trace.append(f"[집계] 원장에서 조건에 맞는 문서 {n}건 전수 조회 "
+                 f"(검색 top-k가 아니라 전수이므로 누락 없음)")
+    context = aggregate_context(corp, res, kind)
+    facts = ("### 원장 전수 집계 결과 (코드 — 이 결과를 그대로 사용하고 재계산하지 말 것)\n"
+             + aggregate_facts(kind, res, question))
+    if not clova_available():
+        return {"question_id": question_id, "question": question,
+                "retrieved_context": context,
+                "think_trace": "\n".join(trace), "answer": facts}
+    try:
+        raw = call_clova_raw(
+            SYSTEM_PROMPT,
+            f"[원장 전수 집계]\n{facts}\n\n[근거 발췌]\n{context}\n\n[질문]\n{question}\n\n"
+            f"[지시] 집계 결과를 그대로 사용하라. 직접 세거나 다시 정렬하지 마라. "
+            f"검색 상위 몇 건이 아니라 원장 전수를 본 결과임을 [판단]에 밝혀라. "
+            f"환율·계약상대·계약기간 같은 세부는 【채택 문서】 표시가 붙은 근거에서만 "
+            f"가져와라. 다른 문서의 값을 채택 건에 붙이지 마라. "
+            f"동수라고 적혀 있으면 하나를 고르지 말고 동수임을 답하라.",
+            max_tokens=MAXTOK_ANSWER, label="answer-aggregate")
+    except Exception as e:
+        trace.append(f"[집계-err] 생성 실패({type(e).__name__}) → 검색 경로로 폴백")
+        return None
+    model_trace, ans = parse_kam_output(raw)
+    model_trace = check_subtitle(model_trace, trace)
+    anchors = build_anchors(context, question, (), (), extra_terms=[
+        r.get("rcept_no", "") for r in (res.get("rows") or res.get("per_doc") or [])])
+    ans = anchor_filter_answer(ans, anchors, trace, context)
+    anchor_report_trace(model_trace, anchors, trace, context)
+    trace.append("[5] 집계 경로 서술 생성 완료")
+    return {"question_id": question_id, "question": question,
+            "retrieved_context": context,
+            "think_trace": merge_trace(model_trace, trace), "answer": ans}
+
+
 def answer_question(question_id: str, question: str) -> dict:
     trace = []
     begin_request(trace)   # 재시도 예산(BUDGET_SEC)과 토큰 계측의 기준점
@@ -2424,6 +2719,12 @@ def answer_question(question_id: str, question: str) -> dict:
     if not companies:
         return answer_refusal(question_id, question, REFUSAL_OUT_OF_UNIVERSE,
                               extra_log=trace)
+
+    # 집계 질의는 검색을 타지 않는다. 도구가 값을 못 뽑으면 아래 검색 경로로 폴백.
+    if use_aggregate_tools() and aggregate_intent(question):
+        agg = answer_aggregate(question_id, question, companies[0], ret, trace)
+        if agg:
+            return agg
 
     res = ret.search(question, topk=TOPK, companies=companies)
     hits = res["hits"]

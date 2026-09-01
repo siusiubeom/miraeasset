@@ -81,6 +81,9 @@ def build_anchors(context, question="", calc_values=(), hits=(), extra_terms=())
         add_num(tok)
     for rx in _DATE_RES:
         anchors |= set(rx.findall(question or ""))
+    # 질문이 조·억으로 제시한 금액은 근거·답변과 표기가 다르다. 단위 변형을 모두 넣는다.
+    anchors |= amount_variants(question)
+    anchors |= amount_variants(ctx)
 
     # 코드 계산 결과(합·차·비율·환산)는 컨텍스트에 없지만 근거 있는 값이다.
     for v in calc_values or ():
@@ -89,6 +92,48 @@ def build_anchors(context, question="", calc_values=(), hits=(), extra_terms=())
 
     anchors |= {t for t in (extra_terms or ()) if len(t) >= MIN_TERM_LEN}
     return {a for a in anchors if a}
+
+
+# 한국어 금액 표기 — "11조 5,263억원", "333,605,938백만원", "3.00조원"
+_UNIT_SCALE = {"조": 10 ** 12, "억": 10 ** 8, "백만": 10 ** 6, "천": 10 ** 3}
+_COMPOSITE_AMOUNT_RE = re.compile(r"([\d,]+)\s*조\s*([\d,]+)\s*억")
+_SIMPLE_AMOUNT_RE = re.compile(r"([\d,]+(?:\.\d+)?)\s*(조|억|백만|천)\s*원?")
+
+
+def _scalings(v):
+    """같은 금액의 원·천원·백만원·억원·조원 표기(정수로 떨어지는 것만)."""
+    out = set()
+    for f in (1, 10 ** 3, 10 ** 6, 10 ** 8, 10 ** 12):
+        if v % f == 0:
+            q = v // f
+            out.add(str(q))
+            out.add(f"{q:,}")
+    return out
+
+
+def amount_variants(text):
+    """텍스트의 금액 표기를 모든 단위 표기로 전개한다.
+
+    질문이 "11조 5,263억원"으로 제시한 값이 컨텍스트에는 "11,526,297백만원"으로,
+    답변에는 원 단위로 나온다. 표기가 달라 접지에 걸리지 않았다(L5).
+    """
+    out = set()
+    seen = []
+    for m in _COMPOSITE_AMOUNT_RE.finditer(text or ""):
+        v = (int(m.group(1).replace(",", "")) * _UNIT_SCALE["조"]
+             + int(m.group(2).replace(",", "")) * _UNIT_SCALE["억"])
+        out |= _scalings(v)
+        seen.append(m.span())
+    for m in _SIMPLE_AMOUNT_RE.finditer(text or ""):
+        if any(a <= m.start() < b for a, b in seen):
+            continue          # 복합 표기의 조각은 건너뛴다
+        try:
+            num = float(m.group(1).replace(",", ""))
+        except ValueError:
+            continue
+        v = int(num * _UNIT_SCALE[m.group(2)])
+        out |= _scalings(v)
+    return out
 
 
 def split_sentences(text):
@@ -103,10 +148,47 @@ def is_anchored(sentence, anchors):
     return False
 
 
-def unanchored_sentences(text, anchors, min_len=MIN_LEN):
-    """min_len 이상인데 앵커를 하나도 포함하지 않는 문장들."""
+# 한계 진술 — 근거가 없다고 밝히는 문장이다. 주장이 아니므로 접지를 요구하지
+# 않는다. 이것까지 지우면 "확인할 수 없습니다"가 통째로 사라진다.
+LIMITATION_RE = re.compile(
+    r"확인(?:할\s?수\s?없|되지\s?않|이\s?불가)|기재(?:되어\s?있지\s?않|가\s?없)|"
+    r"제공되지\s?않|찾을\s?수\s?없|보유하고\s?있지\s?않|"
+    r"제시할\s?수\s?없|답변(?:드릴\s?수\s?없|할\s?수\s?없)|범위를\s?벗어")
+
+
+def is_limitation(sentence):
+    return bool(LIMITATION_RE.search(sentence or ""))
+
+
+# 근거를 인용하는 표지 — "주석에 기재되어 있습니다", "~로 인하여"
+QUOTE_MARK_RE = re.compile(
+    r"기재되어|기재된|기재하고|기재됨|명시되어|명시된|적혀\s?있|"
+    r"로\s?인하여|로\s?인한|에\s?따른|에\s?따라|사유는|사유가|"
+    r"때문|기인|밝히고\s?있|기재상")
+_HANGUL_RUN_RE = re.compile(r"[가-힣]{4,}")
+
+
+def is_quoted_from(sentence, context):
+    """근거를 인용한 문장인가.
+
+    앵커(수치·접수번호·항목명)로는 원문 서술의 인용을 잡을 수 없다. 자본금 주석의
+    "이익소각으로 인하여"를 그대로 옮긴 정답 문장이 미접지로 지워졌다(L8).
+    인용 표지가 있고, 문장의 한글 어구가 근거에 그대로 있으면 접지로 본다.
+    """
+    if not context or not QUOTE_MARK_RE.search(sentence or ""):
+        return False
+    return any(seg in context for seg in _HANGUL_RUN_RE.findall(sentence or ""))
+
+
+def unanchored_sentences(text, anchors, min_len=MIN_LEN, context=""):
+    """min_len 이상인데 앵커를 하나도 포함하지 않는 문장들.
+
+    한계 진술은 제외한다 — 근거 없음을 밝히는 문장에 근거를 요구할 수 없다.
+    """
     return [s for s in split_sentences(text)
-            if len(s) >= min_len and not is_anchored(s, anchors)]
+            if len(s) >= min_len and not is_limitation(s)
+            and not is_anchored(s, anchors)
+            and not is_quoted_from(s, context)]
 
 
 # 삭제 후 남는 번호·불릿 정리 — "2. 3."만 남은 목록을 내보내지 않기 위해

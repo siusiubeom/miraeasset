@@ -123,12 +123,24 @@ def run_one(qid, company, question):
     }
 
 
+def load_questions(path):
+    """외부 문항 파일 — [{"qid","company","question"}, ...]"""
+    rows = json.loads(Path(path).read_text(encoding="utf-8"))
+    return [(r["qid"], r["company"], r["question"]) for r in rows]
+
+
 def main():
-    out_name = sys.argv[1] if len(sys.argv) > 1 else "expert10.json"
-    only = set(sys.argv[2:])
+    args = sys.argv[1:]
+    questions = QUESTIONS
+    if "--questions" in args:
+        i = args.index("--questions")
+        questions = load_questions(args[i + 1])
+        args = args[:i] + args[i + 2:]
+    out_name = args[0] if args else "expert10.json"
+    only = set(args[1:])
 
     rows, skipped = [], []
-    for qid, company, question in QUESTIONS:
+    for qid, company, question in questions:
         if only and qid not in only:
             continue
         if not has_chunks(company):
