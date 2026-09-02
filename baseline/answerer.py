@@ -16,6 +16,8 @@ from anchor_check import (UNANCHORED_TRACE_RATIO, amount_variants, build_anchors
                           unanchored_sentences)
 from evidence_tier import tier_label
 from retrieval import Retriever
+import struct_ops as SO
+from table_cells import parse_cells
 
 # .env 로드 (프로젝트 루트) — 이미 설정된 환경변수는 덮어쓰지 않음
 _env_file = Path(__file__).resolve().parents[1] / ".env"
@@ -2025,6 +2027,130 @@ def answer_one_stage(question: str, hits, trace):
     return model_trace, ans
 
 
+def _line_label(line):
+    """'값:' 줄의 표시용 라벨 — '기준:' 필드가 있으면 그것, 없으면 잔여 텍스트."""
+    m = re.search(r"기준\s*[:：]\s*([^|\n]+)", line or "")
+    if m:
+        return m.group(1).strip()[:24]
+    s = re.sub(r"값\s*[:：][^|]*", "", line or "")
+    s = re.sub(r"출처\s*[:：].*", "", s)
+    return s.strip(" -|()·,")[:24] or "항목"
+
+
+def use_struct_ops() -> bool:
+    """표 직독 + 구조 연산 경로. 기본 켜짐, USE_STRUCT_OPS=0으로 끈다."""
+    return os.environ.get("USE_STRUCT_OPS", "1") not in ("0", "false", "False")
+
+
+def struct_cells_for_hits(hits):
+    """hit 청크와 같은 (문서, 섹션)의 이웃 청크까지 표 셀로 읽는다.
+
+    청크 경계에서 표가 잘리면 검색된 조각에는 일부 행만 남는다(T10: 연결
+    부문표의 영업이익 행이 다음 청크에 있었다). 표는 문서에 있고 검색은
+    그 문서를 찾을 뿐이므로, 셀 파싱은 섹션 전체에서 한다.
+    """
+    cells, seen = [], set()
+    for rec, _ in hits:
+        key = (rec.get("corp"), rec["rcept_no"], rec.get("section_path"))
+        if key in seen:
+            continue
+        seen.add(key)
+        sibs = sorted((c for c in AGG.chunks_by_rcept(rec.get("corp") or "")
+                       .get(rec["rcept_no"], [])
+                       if c.get("section_path") == rec.get("section_path")),
+                      key=lambda c: c.get("chunk_id") or "") or [rec]
+        # 청크 경계의 메타데이터 대괄호 줄을 걷어내고 이어 붙인다 — 표가 청크
+        # 중간에서 잘리면 뒷조각이 헤더를 잃는다(T10: 연결 영업이익 열 라벨 소실).
+        joined = "\n".join(
+            re.sub(r"(?m)^\[[^\]\n]*\|[^\]\n]*\]\s*$", "", c.get("text") or "")
+            for c in sibs)
+        cells += parse_cells(joined, rec["rcept_no"],
+                             rec["rcept_dt"], rec.get("report_nm", ""))
+    return cells
+
+
+def _deriv_allowed_nums(derivs, cells):
+    allowed = set()
+    for d in derivs:
+        v = abs(d.value)
+        if d.unit == "%":
+            allowed.add(_digits(str(v)))
+        else:
+            allowed |= unit_variants(v)
+    for c in cells:
+        allowed.add(f"{abs(c.value):.0f}")
+    return allowed
+
+
+STRUCT_REFUSAL_RE = re.compile(
+    r"확인(?:할 수 없|되지 않|이 어렵)|구성하지 못했|찾을 수 없|해당하는 것이 없")
+
+
+def attach_derivations(ans, deriv_lines, hits, trace, docs=None):
+    """[산출 내역]을 답변 끝에 붙인다. 산문이 거절이면 산문을 대체한다.
+
+    근거는 파생에 실제 쓰인 문서(docs)를 우선하고, 없으면 검색 상위로 채운다.
+    """
+    if not deriv_lines:
+        return ans
+    src_nos = " / ".join(dict.fromkeys(
+        str(n) for n in (docs or []) if n)) or " / ".join(dict.fromkeys(
+        str(rec["rcept_no"]) for rec, _ in hits[:3] if rec.get("rcept_no")))
+    if (not ans) or STRUCT_REFUSAL_RE.search(ans):
+        ans = "질문에 해당하는 산출값은 다음과 같습니다."
+        trace.append("[5+] 산문이 한계 고지인데 코드 산출값 존재 — 산문을 산출 안내로 대체")
+    ans = (ans.rstrip() + "\n\n[산출 내역]\n" + "\n".join(deriv_lines)
+           + (f"\n근거 {src_nos}" if src_nos else ""))
+    trace.append(f"[5+] 산출 내역 {len(deriv_lines)}줄 첨부(코드 계산, 모델 비경유)")
+    return ans
+
+
+def answer_struct(question: str, hits, trace):
+    """표 직독 + 구조 연산 경로. 유효한 파생이 없으면 None(기존 경로 폴백).
+
+    질문에서는 명사(회사·지표·시점·항목)만 쓰고 의도(합계·차액·비율)는
+    판정하지 않는다. 연산은 셀 구조가 결정하고, LLM은 파생 중 질문에
+    해당하는 것을 골라 서술만 한다.
+    """
+    cells = struct_cells_for_hits(hits)
+    if not cells:
+        return None
+    derivs = SO.derive(cells, question)
+    if not derivs:
+        return None
+    trace.append(f"[4S] 표 직독 {len(cells)}셀 → 구조 연산 {len(derivs)}건 "
+                 "(의도 판정 없음 — 구조에서 유효한 연산 전부)")
+    for d in derivs:
+        trace.append(f"[4S+] {d.desc}")
+    deriv_lines = [d.desc for d in derivs]
+    ctx = build_context(hits)
+    sources = "\n".join(f"- {src_label(rec)}" for rec, _ in hits[:3])
+    facts = ("### 산출 내역 — 코드가 공시 표에서 직접 계산했다. 그대로 인용하고 "
+             "재계산·반올림하지 말 것\n" + "\n".join(deriv_lines)
+             + "\n\n### 출처 (검색 메타데이터 — 이 값을 그대로 사용할 것)\n" + sources)
+    raw = call_clova_raw(
+        SYSTEM_PROMPT,
+        f"[공시에서 추출·검증된 사실]\n{facts}\n\n[질문]\n{question}\n\n"
+        f"[지시] 산출 내역 중 질문에 해당하는 것을 골라 그대로 인용해 답하라. "
+        f"재계산하지 마라. 근거 줄은 '출처' 절의 공시명·접수일·접수번호를 그대로 옮겨 "
+        f"적어라. 해당하는 것이 없으면 그렇다고 말하라. "
+        f"차감의 잔차는 반드시 수치로 쓴다. 잔차가 0이 아니면 '완전히'·'정확히'를 "
+        f"붙이지 않는다. '거의'·'사실상'은 잔차의 절대값이 피연산자의 0.01% 미만일 "
+        f"때만 쓴다. 그 이상이면 상쇄 여부를 서술하지 말고 잔차만 제시하라.",
+        max_tokens=MAXTOK_ANSWER, label="answer")
+    model_trace, ans = parse_kam_output(raw)
+    model_trace = check_subtitle(model_trace, trace)
+    allowed = (_deriv_allowed_nums(derivs, cells)
+               | {_digits(t) for t in re.findall(r"\d[\d,]{3,}", question)})
+    ans = ground_answer(ans, ctx, hits, allowed, trace)
+    ans = strip_empty_templates(ans, trace)
+    ans = strip_opinion_sentences(ans, trace)
+    ans = attach_derivations(ans, deriv_lines, hits, trace,
+                             docs=sorted({n for d in derivs for n in d.docs}))
+    trace.append("[5] 구조 경로 서술 생성 완료")
+    return model_trace, ans
+
+
 def answer_single_company(question: str, hits, trace):
     """단일 회사 경로도 2단계로 나눈다: LLM은 값 추출·서술만 하고, 산술은 코드가 한다.
 
@@ -2034,6 +2160,14 @@ def answer_single_company(question: str, hits, trace):
     반환은 (model_trace, answer). model_trace는 모델이 쓴 산문 think_trace이며
     JSON 파싱에 실패하면 빈 문자열이다(그 경우 answer만 살린다).
     """
+    if use_struct_ops():
+        try:
+            got = answer_struct(question, hits, trace)
+            if got:
+                return got
+        except Exception as e:
+            trace.append(f"[4S-err] 표 직독 실패({type(e).__name__}) → 기존 경로 폴백")
+
     if not needs_two_stage(question, hits):
         trace.append("[3++] 단순 조회 판정 → 1단계 직행(생성 호출 1회)")
         return answer_one_stage(question, hits, trace)
@@ -2135,6 +2269,8 @@ def answer_single_company(question: str, hits, trace):
     expected = None
     unit = asked_unit(question)
     calc_lines = []
+    deriv_lines = []       # [산출 내역] — 의도 판정 경로의 계산 (경고 시 보류)
+    deriv_struct = []      # [산출 내역] — 구조 검산 통과분 (보류 없이 첨부)
     allowed_nums = set()   # 코드 계산으로 생성된 값 — 컨텍스트에 없어도 허용
     pcts = []              # 코드가 계산한 비율 — 답변이 다른 비율을 쓰면 교체한다
     if any(implausible_krw(v) for v in values):
@@ -2154,10 +2290,27 @@ def answer_single_company(question: str, hits, trace):
     # 코드가 합산하지 않은 경우에도 모델이 옳게 더한 값은 허용한다(A1).
     allowed_nums |= combo_values(values) | combo_values(shares)
 
+    # ratio2 — 서술문에서 추출된 부분 값들의 합이 표 총액과 0.1% 이내로
+    # 일치하면 부분합이 곧 전체다(T06: 목적별 금액이 취득결정 총액을 분할).
+    # 분모를 추측하지 않는다 — 검산을 통과한 총액만 전체로 인정한다.
+    if use_struct_ops() and len(values) >= 2:
+        try:
+            lv = [(_line_label(ln), v) for ln in _value_lines(ext_g)
+                  if (v := _parse_line(ln, ctx)[0]) is not None]
+            for d in SO.ratio2(lv, struct_cells_for_hits(hits)):
+                calc_lines.append(d.desc)
+                deriv_struct.append(d.desc)
+                pcts.append(("부분합", d.value))
+                allowed_nums.add(_digits(str(d.value)))
+                trace.append(f"[4S+] {d.desc}")
+        except Exception as e:
+            trace.append(f"[4S-err] ratio2 실패({type(e).__name__}) — 생략")
+
     if len(values) == 2 and wants_diff(question):
         diff = abs(values[0] - values[1])
         expected = diff
         calc_lines.append(f"차액: |{values[0]:,.0f} - {values[1]:,.0f}| = {format_krw(diff)}")
+        deriv_lines.append(f"차액: |{values[0]:,.0f} − {values[1]:,.0f}| = {format_krw(diff)}")
         allowed_nums |= (unit_variants(diff) | unit_variants(values[0])
                          | unit_variants(values[1]))
         trace.append(f"[4+] 코드 차액: {values[0]:,.0f} - {values[1]:,.0f} = {diff:,.0f}")
@@ -2166,11 +2319,13 @@ def answer_single_company(question: str, hits, trace):
         allowed_nums |= {d for v in values for d in unit_variants(v)}
         terms = " + ".join(f"{v:,.0f}" for v in values)
         calc_lines.append(f"합계: {terms} = {total_s}")
+        deriv_lines.append(f"합계: {terms} = {total_s}")
         allowed_nums.add(f"{expected:.0f}")
         trace.append(f"[4+] 코드 합산: {terms} = {expected:,.0f}")
     elif table_ratios:
         for basis, item, num, den, pct in table_ratios:
             calc_lines.append(f"{basis} 기준 비율: {item} {num:,.0f} / {den:,.0f} = {pct}%")
+            deriv_lines.append(f"{basis} 기준 비율: {item} {num:,.0f} / {den:,.0f} = {pct}%")
             allowed_nums |= {_digits(str(pct)), f"{num:.0f}", f"{den:.0f}"}
             pcts.append((basis, pct))
         if len(table_ratios) > 1:
@@ -2182,17 +2337,26 @@ def answer_single_company(question: str, hits, trace):
         for label, vs in (("금액", values), ("주식수", shares)):
             if len(vs) < 2:
                 continue
-            # RATIO_INSTRUCT는 둘째 줄에 '전체'를 요구하지만 모델은 동종 항목을
-            # 두 줄로 내놓기도 한다. 둘째 값이 첫 값 이상이면 전체(분모)로, 작으면
-            # 같은 층위의 다른 부분으로 보고 합을 분모로 쓴다.
-            if vs[1] >= vs[0]:
-                total, basis = vs[1], "둘째 값이 전체"
-            else:
-                total, basis = sum(vs, Decimal(0)), "추출된 항목들의 합이 전체"
+            # RATIO_INSTRUCT는 둘째 줄에 '전체'를 요구한다. 둘째 값이 첫 값
+            # 이상일 때만 전체(분모)로 인정한다. 작으면 같은 층위의 다른 부분이고,
+            # 부분들의 합은 전사 값이 아니다(부문 합계는 내부거래 제거 전이라
+            # 전사와 다르다 — T10에서 잘못된 분모를 만든 원인). 전사·합계·총계
+            # 행이 표에 있으면 share_class_ratios가 표 직독으로 이미 잡았다.
+            if vs[1] < vs[0]:
+                calc_lines.append(
+                    f"{label} 기준 비율: 산출하지 않았다 — 추출된 값들이 모두 부분 "
+                    f"항목이고 전사·합계 행을 확보하지 못했다. 부분의 합을 분모로 "
+                    f"쓰지 말고, 비율을 직접 계산해 제시하지 말 것.")
+                trace.append(f"[4!] 비율({label}) 미산출 — 전체(분모) 미확보: "
+                             + ", ".join(f"{v:,.0f}" for v in vs))
+                continue
+            total, basis = vs[1], "둘째 값이 전체"
             pct, pct_s = ratio_krw(vs[0], total)
             unit_s = "원" if label == "금액" else "주"
             calc_lines.append(f"{label} 기준 비율: {vs[0]:,.0f}{unit_s} / "
                               f"{total:,.0f}{unit_s} = {pct_s} ({basis})")
+            deriv_lines.append(f"{label} 기준 비율: {vs[0]:,.0f}{unit_s} / "
+                               f"{total:,.0f}{unit_s} = {pct_s} ({basis})")
             pcts.append((label, pct))
             allowed_nums |= {_digits(str(pct)), f"{vs[0]:.0f}", f"{total:.0f}"}
             trace.append(f"[4+] 코드 비율({label}): {vs[0]:,.0f} / {total:,.0f} "
@@ -2217,12 +2381,15 @@ def answer_single_company(question: str, hits, trace):
     for u in (asked_units(question) if expected is not None else []):
         conv = convert_krw(expected, u)
         calc_lines.append(f"요청 단위({u}) 환산: {conv}")
+        deriv_lines.append(f"요청 단위({u}) 환산: {conv}")
         allowed_nums.add(_digits(conv))
         trace.append(f"[4+] 요청 단위 환산: {conv}")
 
     if _REQ.get("counted"):
         calc_lines.append("건수 집계: " + str(len(_REQ["counted"])) + "건 — "
                           + ", ".join(f"{no} {nm}" for no, nm in _REQ["counted"]))
+        deriv_lines.append("건수 집계: " + str(len(_REQ["counted"])) + "건 — "
+                           + ", ".join(f"{no} {nm}" for no, nm in _REQ["counted"]))
     if GROWTH_QUESTION_RE.search(question):
         series = year_values(ext_g, ctx)
         neg = {y: v for y, v in series.items() if v <= 0}
@@ -2242,8 +2409,12 @@ def answer_single_company(question: str, hits, trace):
             # 1년 구간에서는 CAGR과 총 증감률이 수학적으로 같은 값이다. 같은 숫자에
             # 라벨 둘을 붙여 넘기면 모델이 뒤섞는다(L9: "97.99% 증가, 이는 CAGR").
             # 2년 이상일 때만 둘을 함께 싣고, 그때도 구간을 명시한다.
+            deriv_lines.append("연도별 값: " + ", ".join(
+                f"{y}년 {series[y]:,.0f}원" for y in yrs))
             if span >= 2:
                 calc_lines.append(
+                    f"연평균 성장률(CAGR, {yrs[0]}→{yrs[-1]}, 구간 {span}년): {g}%")
+                deriv_lines.append(
                     f"연평균 성장률(CAGR, {yrs[0]}→{yrs[-1]}, 구간 {span}년): {g}%")
             # 총 증감률과 연평균은 다른 값이다. 질문이 증감률을 물으면 둘을
             # 구분해 싣는다 — 라벨 하나만 주면 모델이 그것을 증감률로 옮겨 적는다.
@@ -2255,6 +2426,7 @@ def answer_single_company(question: str, hits, trace):
                    if span >= 2 else
                    " (구간이 1년이라 연평균 성장률과 같은 값이므로 CAGR은 싣지 않았다."
                    " 이 값을 CAGR이라 부르지 말 것)"))
+            deriv_lines.append(f"총 증감률({yrs[0]}→{yrs[-1]}, 구간 {span}년): {total_pct}%")
             allowed_nums.add(_digits(str(total_pct)))
             trace.append(f"[4+] 코드 총 증감률({yrs[0]}→{yrs[-1]}): {total_pct}%")
             allowed_nums |= {f"{v:.0f}" for v in series.values()}
@@ -2378,6 +2550,21 @@ def answer_single_company(question: str, hits, trace):
         if reached < hops:
             trace.append(f"[5!] 단계 미달 — {hops}단계를 물었으나 답변이 언급한 "
                          f"지배구조 단계는 {reached}개")
+    # [산출 내역] — 코드가 계산한 것이 있으면 답변 끝에 붙인다. 모든 게이트
+    # (검산·접지·앵커·정정모순) 뒤에 붙이므로 모델 산문이 지워지거나 틀려도
+    # 내역은 남는다(T06: 코드가 71.88%를 맞게 계산했는데 산문만 나가서 실종).
+    # 다만 [4!] 경고가 하나라도 붙은 계산은 싣지 않는다 — 산출 내역은 산문
+    # 게이트를 우회하므로, 의도 오판(T02: wants_sum이 네 값을 합산) 상태에서
+    # 실으면 차단됐어야 할 오답이 자신 있는 오답으로 나간다. 구조 판정([1])이
+    # 들어와 계산이 맞게 되면 이 게이트를 좁힌다.
+    calc_warned = any(str(ln).startswith("[4!") or "차단" in str(ln)
+                      for ln in trace)
+    if calc_warned and deriv_lines:
+        trace.append("[5!] 계산 경고([4!]·차단) 존재 — 의도 판정 계산분 첨부 보류")
+    # 구조 검산 통과분(deriv_struct)은 보류하지 않는다 — 분모·연산이 표 구조와
+    # 검산에서 나왔으므로 의도 오판의 영향권 밖이다(T06의 71.88%).
+    attach = deriv_struct + ([] if calc_warned else deriv_lines)
+    ans = attach_derivations(ans, attach, hits, trace)
     trace.append("[5] 서술 생성 완료")
     return model_trace, ans
 
@@ -2497,7 +2684,8 @@ def answer_boundary(question_id: str, question: str) -> dict:
 # 8건 기준 최대가 1,013,700,000,000원인데 전수 기준 최대는 1,095,900,000,000원이다.
 # '최대주주'의 '최대'가 극값으로 잡히면 E10 같은 나열 질의가 극값 경로로 샌다.
 EXTREMUM_QUESTION_RE = re.compile(
-    r"가장\s?(?:큰|작은|많은|적은)|최대(?!주주|출자)|최소|최초|최종본?|제일")
+    # '최종 정정본 기준'은 극값 요구가 아니라 판본 지정이다(T01이 집계 경로로 샘).
+    r"가장\s?(?:큰|작은|많은|적은)|최대(?!주주|출자)|최소|최초|최종(?!\s?정정)본?|제일")
 # '전부·모두'만으로는 나열 의도가 아니다. E01의 "나머지는 모두 빼기다"가
 # 집계 경로로 샜다. 나열을 지시하는 표현이 있을 때만 잡는다.
 SORT_QUESTION_RE = re.compile(

@@ -77,14 +77,24 @@ def _doc_text(corp, rcept_no):
     return "\n".join(c.get("text") or "" for c in chunks_by_rcept(corp).get(rcept_no, []))
 
 
+_NUM_CELL_RE = re.compile(r"\|\s*([\d,]+(?:\.\d+)?)\s*(?=\|)")
+
+
 def parse_field(text, field):
-    """문서 본문에서 숫자 필드를 뽑는다. 정정본은 '정정후' 열이 뒤에 온다."""
+    """문서 본문에서 숫자 필드를 뽑는다. 정정본은 '정정후' 열이 뒤에 온다.
+
+    값은 셀 전체가 숫자인 칸에서만 취한다. 서식 표는 행 라벨이 두 번 반복되므로
+    라벨 접두("2. 취득예정금액")의 행번호가 값으로 잡히면 안 된다(T01: 최대값 2원).
+    """
     vals = []
-    for m in re.finditer(_FIELD_VALUE_RE.format(field=re.escape(field)), text or ""):
-        try:
-            vals.append(float(m.group(1).replace(",", "")))
-        except ValueError:
+    for line in (text or "").splitlines():
+        if field not in line:
             continue
+        for m in _NUM_CELL_RE.finditer(line):
+            try:
+                vals.append(float(m.group(1).replace(",", "")))
+            except ValueError:
+                continue
     return vals
 
 
