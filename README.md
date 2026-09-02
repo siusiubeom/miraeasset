@@ -7,10 +7,11 @@ DART 공시 코퍼스(70개사, 4,204건) 기반 질의응답 Agent.
 
 ## 평가용 API End-point (필수 제출 항목)
 
-> **End-point:** `http://<공인IP>/answer`
+> **End-point:** `https://preoccupy-distort-jujitsu.ngrok-free.dev/answer`
 >
-> ⚠️ **TODO: 서버 배포 후 위 `<공인IP>` 를 실제 주소로 교체할 것. 이 표시가 남아 있으면 제출 불가.**
-> (표준 포트 사용: HTTP 80 — 포트 표기 생략 / 도메인 없이 공인 IP 직접 접근)
+> HTTPS 443 표준 포트이므로 포트 표기를 생략합니다. 개인 환경에서 서버를 운영하고
+> ngrok 고정 도메인으로 외부에 노출했습니다 — 평가 규격이 명시적으로 허용하는 방식입니다
+> (평가API_규격_및_QA.md: "개인 환경 구성 시 ngrok 등 터널링 서비스 자유롭게 활용 가능").
 
 ### 호출 방법 (주최측 평가 규격)
 
@@ -19,7 +20,7 @@ GET {end-point}/answer?question_id={질의 ID}&question={평가 질의}
 ```
 
 ```bash
-curl -G "http://<공인IP>/answer" \
+curl -G "https://preoccupy-distort-jujitsu.ngrok-free.dev/answer" \
   --data-urlencode "question_id=Q-001" \
   --data-urlencode "question=삼성전자의 2025년 연결기준 매출액은 얼마인가?"
 ```
@@ -113,7 +114,18 @@ mirae/
 | 항목 | 크기 | 제공 방법 |
 |---|---|---|
 | `corpus/` 원본 공시 | 5.3GB | 주최측 배포본 사용 (재배포하지 않음) |
-| `processed/` 전처리 산출물 | 3.6GB | **TODO: 클라우드 스토리지 링크 기입** — 또는 위 [실행 방법 2]로 재생성 (약 N분 소요) |
+| `processed/` 전처리 산출물 | 3.6GB (zip 673MB) | [processed.zip 내려받기](https://drive.google.com/file/d/1NZbr7sW-G3iCGthQaXG1eZOIsOI1TW24/view?usp=sharing) — 또는 아래 명령으로 재생성 |
+
+링크가 만료되면 원본 코퍼스만 있으면 전부 재생성됩니다. 실측 4,204건 / 15.7분 / 오류 0건:
+
+```bash
+python preprocess/build_company_md.py     # docs/, companies/, build_report.json
+python baseline/chunk_docs.py             # chunks/ (검색이 읽는 산출물)
+```
+
+런타임에 실제로 필요한 것은 `processed/chunks/`(1.5GB), `processed/build_report.json`,
+`corpus/manifest.jsonl`, `corpus/universe.csv` 넷입니다. `processed/companies/`와
+`processed/docs/`는 사람이 원문을 확인할 때 쓰는 마크다운이라 서비스에는 필요 없습니다.
 
 ## 팀 문서
 

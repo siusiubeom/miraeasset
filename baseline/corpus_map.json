@@ -1,0 +1,2184 @@
+{
+ "n_docs": 4204,
+ "n_companies": 70,
+ "report_distribution": [
+  {
+   "report": "단일판매ㆍ공급계약체결",
+   "n": 1040,
+   "n_correction": 528
+  },
+  {
+   "report": "주식등의대량보유상황보고서(일반)",
+   "n": 607,
+   "n_correction": 33
+  },
+  {
+   "report": "분기보고서",
+   "n": 529,
+   "n_correction": 47
+  },
+  {
+   "report": "주식등의대량보유상황보고서(약식)",
+   "n": 476,
+   "n_correction": 8
+  },
+  {
+   "report": "사업보고서",
+   "n": 291,
+   "n_correction": 84
+  },
+  {
+   "report": "반기보고서",
+   "n": 234,
+   "n_correction": 28
+  },
+  {
+   "report": "투자판단관련주요경영사항",
+   "n": 165,
+   "n_correction": 43
+  },
+  {
+   "report": "주요사항보고서(자기주식처분결정)",
+   "n": 157,
+   "n_correction": 15
+  },
+  {
+   "report": "주요사항보고서(자기주식취득결정)",
+   "n": 91,
+   "n_correction": 15
+  },
+  {
+   "report": "주요사항보고서(상각형조건부자본증권발행결정)",
+   "n": 71,
+   "n_correction": 49
+  },
+  {
+   "report": "단일판매ㆍ공급계약체결(자율공시)",
+   "n": 66,
+   "n_correction": 35
+  },
+  {
+   "report": "주요사항보고서(유상증자결정)",
+   "n": 55,
+   "n_correction": 37
+  },
+  {
+   "report": "주요사항보고서(자기주식취득신탁계약체결결정)",
+   "n": 47,
+   "n_correction": 1
+  },
+  {
+   "report": "주요사항보고서(자기주식취득신탁계약해지결정)",
+   "n": 43,
+   "n_correction": 1
+  },
+  {
+   "report": "신규시설투자등",
+   "n": 38,
+   "n_correction": 13
+  },
+  {
+   "report": "주요사항보고서(회사합병결정)",
+   "n": 24,
+   "n_correction": 9
+  },
+  {
+   "report": "주요사항보고서(전환사채권발행결정)",
+   "n": 22,
+   "n_correction": 10
+  },
+  {
+   "report": "단일판매ㆍ공급계약해지",
+   "n": 19,
+   "n_correction": 0
+  },
+  {
+   "report": "주요사항보고서(주식교환ㆍ이전결정)",
+   "n": 12,
+   "n_correction": 6
+  },
+  {
+   "report": "주요사항보고서(회사분할결정)",
+   "n": 12,
+   "n_correction": 7
+  },
+  {
+   "report": "투자판단관련주요경영사항(자회사의 주요경영사항)",
+   "n": 9,
+   "n_correction": 4
+  },
+  {
+   "report": "주요사항보고서(회사분할합병결정)",
+   "n": 8,
+   "n_correction": 7
+  },
+  {
+   "report": "주요사항보고서(타법인주식및출자증권양수결정)",
+   "n": 7,
+   "n_correction": 4
+  },
+  {
+   "report": "주요사항보고서(자본으로인정되는채무증권발행결정)",
+   "n": 6,
+   "n_correction": 2
+  },
+  {
+   "report": "주요사항보고서(감자결정)",
+   "n": 6,
+   "n_correction": 0
+  },
+  {
+   "report": "신규시설투자등(자율공시)",
+   "n": 5,
+   "n_correction": 2
+  },
+  {
+   "report": "주요사항보고서(소송등의제기)",
+   "n": 5,
+   "n_correction": 1
+  },
+  {
+   "report": "주요사항보고서(무상증자결정)",
+   "n": 5,
+   "n_correction": 1
+  },
+  {
+   "report": "주요사항보고서(해외증권시장주권등상장폐지결정)",
+   "n": 4,
+   "n_correction": 0
+  },
+  {
+   "report": "주요사항보고서(해외증권시장주권등상장폐지)",
+   "n": 4,
+   "n_correction": 0
+  },
+  {
+   "report": "주요사항보고서(교환사채권발행결정)",
+   "n": 4,
+   "n_correction": 2
+  },
+  {
+   "report": "주요사항보고서(유형자산양도결정)",
+   "n": 3,
+   "n_correction": 2
+  },
+  {
+   "report": "투자판단관련주요경영사항(ALT-B4 관련 마일스톤 기술료 수령)",
+   "n": 3,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (인간 히알루로니다제 원천 기술(ALT-B4) 독점적 라이선스 계약 체결)",
+   "n": 3,
+   "n_correction": 0
+  },
+  {
+   "report": "주요사항보고서(영업양수결정)",
+   "n": 2,
+   "n_correction": 2
+  },
+  {
+   "report": "투자판단관련주요경영사항(최대주주 변경을 수반하는 콜옵션 조건이 포함된 주주간계약의 체결)",
+   "n": 2,
+   "n_correction": 1
+  },
+  {
+   "report": "투자판단관련주요경영사항 (미국 원료의약품 시설 보유한 기업 인수에 대한 독점 교섭 확약 체결 (우선협상대상자 선정))",
+   "n": 2,
+   "n_correction": 1
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP55(코센틱스 바이오시밀러) 유럽 임상 3상 시험계획 변경신청(Part1&2))",
+   "n": 2,
+   "n_correction": 1
+  },
+  {
+   "report": "투자판단관련주요경영사항(ALT-BB4(Tergase) 테르가제주 품목허가 신청)",
+   "n": 2,
+   "n_correction": 1
+  },
+  {
+   "report": "주요사항보고서(자기전환사채매도결정)",
+   "n": 2,
+   "n_correction": 0
+  },
+  {
+   "report": "주요사항보고서(유형자산양수결정)",
+   "n": 2,
+   "n_correction": 2
+  },
+  {
+   "report": "주요사항보고서(해외증권시장주권등상장결정)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "주요사항보고서(해외증권시장주권등상장)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (민군겸용 기술개발사업(다중임무용 다족형 로봇의 통합운동제어 기술개발))",
+   "n": 1,
+   "n_correction": 1
+  },
+  {
+   "report": "유상증자결정",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(하이니켈계 NCA 양극소재 중장기 공급계약)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항( 항체 발굴 플랫폼(SHINE MOUSE®)을 활용한 항체 발굴 및 연구개발을 위한 공동 연구 계약 체결 )",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P42(아일리아 바이오시밀러) 임상 3상 결과 발표)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P39(졸레어 바이오시밀러) 임상 3상 결과 발표)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P39(졸레어 바이오시밀러) 유럽 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P53(오크레부스 바이오시밀러) 유럽 임상 3상 시험계획 신청(Part 1))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P13 SC(램시마 피하주사 제형) 미국 임상 3상 시험계획 신청(궤양성 대장염 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P13 SC(램시마 피하주사 제형) 미국 3상 시험계획 신청(크론병 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P53(오크레부스 바이오시밀러) 미국 임상 3상 시험계획 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(유플라이마(CT-P17, 휴미라 바이오시밀러) 미국 식품의약국(FDA) 최종 판매 허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P43(스텔라라 바이오시밀러) 유럽 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P13 SC(램시마 피하주사 제형) 미국 임상 3상 시험계획 승인(궤양성 대장염 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P13 SC(램시마 피하주사 제형) 미국 3상 시험계획 승인(크론병 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P43(스텔라라 바이오시밀러) 한국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P53(오크레부스 바이오시밀러) 미국 임상 3상 시험계획 승인)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P42(아일리아 바이오시밀러) 미국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P39(졸레어 바이오시밀러) 한국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P43(스텔라라 바이오시밀러) 미국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P42(아일리아 바이오시밀러) 한국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P53(오크레부스 바이오시밀러) 유럽 임상 3상 시험계획 승인(Part 1))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P53(오크레부스 바이오시밀러) 유럽 임상 3상 시험계획 신청(Part 2))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P53(오크레부스 바이오시밀러) 유럽 임상 3상 시험계획 승인(Part 2))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(짐펜트라(CT-P13 SC, 램시마 피하주사 제형) 미국식품의약국(FDA) 최종 판매 허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P41(프롤리아 바이오시밀러) 임상 3상 결과 발표)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P42(아일리아 바이오시밀러) 유럽 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P41(프롤리아&엑스지바 바이오시밀러) 미국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(다중항체의 발굴 및 연구개발을 위한 공동 연구 계약 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P47(악템라 바이오시밀러) 임상 3상 결과 발표)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(유플라이마(CT-P17, 휴미라 바이오시밀러) 상호교환성 임상 3상 결과 발표)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P41(프롤리아&엑스지바 바이오시밀러) 한국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(유플라이마(CT-P17, 휴미라 바이오시밀러) 상호교환성 지위 확보를 위한 미국 변경허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(CT-P47(악템라 바이오시밀러) 미국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P47(로악템라 바이오시밀러) 유럽 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P13 SC(램시마 피하주사 제형) 유럽 임상 3상 시험계획 신청(Part 1) (궤양성 대장염 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P13 SC(램시마 피하주사 제형) 유럽 임상 3상 시험계획 신청(Part 1) (크론병 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P47(악템라 바이오시밀러) 한국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P41(프롤리아&엑스지바 바이오시밀러) 유럽 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P39(졸레어 바이오시밀러) 미국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P39(졸레어 바이오시밀러) 유럽의약품청(EMA) 산하 약물사용자문위원회(CHMP) 판매 승인 권고 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (옴리클로(CT-P39, 졸레어 바이오시밀러) 유럽연합진행위원회(EC) 최종판매허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (아이덴젤트CT-P42, 아일리아 바이오시밀러 한국MFDS 품목허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (스테키마CT-P43, 스텔라라 바이오시밀러 한국MFDS 품목허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P51키트루다 바이오시밀러 미국 임상 3상 시험계획 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P13 SC램시마 피하주사 제형 유럽 임상 3상 시험계획 승인Part 1 궤양성 대장염 소아 환자)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P13 SC램시마 피하주사 제형 유럽 임상 3상 시험계획 승인Part 1 크론병 소아 환자)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P13 SC짐펜트라 미국 임상 3상 시험계획 신청 류마티스 관절염 환자)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (옴리클로CT-P39, 졸레어 바이오시밀러 한국MFDS 품목허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P55코센틱스 바이오시밀러 미국 임상 3상 시험계획 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CT-P43스텔라라 바이오시밀러 유럽의약품청EMA 산하 약물사용자문위원회CHMP 판매 승인 권고 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP51(키트루다 바이오시밀러) 미국 임상 3상 시험계획 승인)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP55(코센틱스 바이오시밀러) 미국 임상 3상 시험계획 승인)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP13 SC(짐펜트라) 미국 임상 3상 시험계획 승인 (류마티스 관절염 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP51(키트루다 바이오시밀러) 유럽 임상 3상 시험계획 신청(Part 1&2))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (스테키마(CTP43, 스텔라라 바이오시밀러) 유럽연합진행위원회(EC) 최종판매허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP13 SC(짐펜트라) 유럽 임상 3상 시험계획 신청(Part1&2) (류마티스 관절염 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP13 SC(램시마 피하주사 제형) 한국 임상 3상 시험계획 신청 (궤양성 대장염 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP13 SC(램시마 피하주사 제형) 한국 임상 3상 시험계획 신청 (크론병 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP55(코센틱스 바이오시밀러) 유럽 임상 3상 시험계획 신청(Part1&2))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (스토보클로&오센벨트(CTP41, 프롤리아&엑스지바 바이오시밀러) 한국(MFDS) 품목허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP44(다잘렉스 바이오시밀러) 유럽 임상 3상 시험계획 신청(Part1))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP44(다잘렉스 바이오시밀러) 미국 임상 3상 시험계획 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP51(키트루다 바이오시밀러) 유럽 임상 3상 시험계획 승인(Part1&2))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP41(프롤리아&엑스지바 바이오시밀러) 유럽의약품청(EMA) 산하 약물사용자문위원회(CHMP) 판매 승인 권고 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP42(아일리아 바이오시밀러) 유럽의약품청(EMA) 산하 약물사용자문위원회(CHMP) 판매 승인 권고 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP47(로악템라 바이오시밀러) 유럽의약품청(EMA) 산하 약물사용자문위원회(CHMP) 판매 승인 권고 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP13 SC(짐펜트라) 유럽 임상 3상 시험계획 승인(Part1&2) (류마티스 관절염 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (스테키마(CTP43, 스텔라라 바이오시밀러) 미국식품의약국(FDA) 최종 판매 허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (앱토즈마주(CTP47, 악템라주 바이오시밀러) 한국(MFDS) 품목허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP44(다잘렉스 바이오시밀러) 미국 임상 3상 시험계획 승인)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP51(키트루다 바이오시밀러) 한국 임상 3상 시험계획 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (앱토즈마(CTP47, 악템라 바이오시밀러) 미국식품의약국(FDA) 최종 판매 허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (앱토즈마피하주사(CTP47, 악템라 바이오시밀러) 한국(MFDS) 품목허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (아이덴젤트(CTP42, 아일리아 바이오시밀러) 유럽연합진행위원회(EC) 최종판매허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (투자판단관련 주요 경영사항: 스토보클로&오센벨트(CTP41, 프롤리아&엑스지바 바이오시밀러) 유럽연합진행위원회(EC) 최종판매허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP55(코센틱스 바이오시밀러) 유럽 임상 3상 시험계획 승인(Part1&2))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (앱토즈마(CTP47, 로악템라 바이오시밀러) 유럽연합진행위원회(EC) 최종판매허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP13 SC(램시마 피하주사 제형) 한국 임상 3상 시험계획 승인(궤양성 대장염 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP13 SC(램시마 피하주사 제형) 한국 임상 3상 시험계획 승인(크론병 소아 환자))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (스토보클로&오센벨트(CTP41, 프롤리아&엑스지바 바이오시밀러) 미국식품의약국(FDA) 최종 판매 허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (옴리클로(CTP39, 졸레어 바이오시밀러) 미국식품의약국(FDA) 최종 판매 허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP44(다잘렉스 바이오시밀러) 한국 임상 3상 시험계획 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP44(다잘렉스 바이오시밀러) 유럽 임상 3상 시험계획 심사통과 (Part1))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (유플라이마(CTP17, 휴미라 바이오시밀러) 상호교환성 지위 확보를 위한 미국 변경허가 승인)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP51(키트루다 바이오시밀러) 한국 임상 3상 시험계획 승인)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP44(다잘렉스 바이오시밀러) 유럽 임상 3상 시험계획 신청(Part2))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP44(다잘렉스 바이오시밀러) 한국 임상 3상 시험계획 승인)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP44(다잘렉스 바이오시밀러) 유럽 임상 3상 시험계획 승인(Part2))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (아이덴젤트(CTP42, 아일리아 바이오시밀러) 미국식품의약국(FDA) 최종 판매 허가 획득)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (공간전사체 기반 항체 발굴 및 후속 연구 개발을 위한 공동연구계약 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (PD1 x VEGF x IL2v 삼중융합단백질 신약 개발을 위한 공동연구개발 및 라이선스 계약 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (희귀 자가면역질환 치료 신약물질 Licensein 계약 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (트리오어社의 플랫폼 기술실시 및 라이선스 계약 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP55(코센틱스 바이오시밀러) 유럽 임상 3상 시험계획 변경신청 승인(Part 1&2))",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP55(코센틱스 바이오시밀러) 미국 임상 3상 시험계획 변경신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (마이크로바이옴 장질환 신약 후보물질 Licensein 계약 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (CTP51(키트루다 바이오시밀러) 한국 임상 3상 시험계획 변경신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (인간 히알루로니다제 원천 기술(ALT-B4) 라이센스 변경계약의 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (ALT-BB4(Tergase)테르가제주 품목 허가 승인)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (히알루로니다제 공동개발 및 라이선스 계약 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (인간 히알루로니다제 원천 기술(ALT-B4) 라이선스 계약 해지 및 권리 반환)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (EYZANFY주 (ALT-L9 애플리버셉트) 한국 품목허가 신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (ALT-B4 관련 마일스톤 기술료 수령)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (ALTB4 라이선스 계약 관련 마일스톤 기술료 수령)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (인간 히알루로니다제 제품(ALTB4) 독점적 라이선스 계약 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (재조합 인간 히알루로니다제 제품 ALT-B4 독점적 라이선스 계약 체결)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(임상시험계획승인신청) (대사이상지방간염 (MASH) 치료제 DD01의 제2상 미국 FDA 임상시험 계획 승인신청)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(임상시험계획승인신청등결정) (대사이상지방간염 (MASH) 치료제 DD01의 제2상 미국 FDA 임상시험 계획 승인)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항 (DD02S 관련 마일스톤 기술료 수령)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(임상시험결과) (대사이상지방간염 (MASH) 치료제 DD01의 미국 임상 제2상 Topline data 수령)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "단일판매ㆍ공급계약해지(자율공시)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "주요사항보고서(제3자의전환사채매수선택권행사)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "주요사항보고서(영업정지)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(자회사의 주요경영사항) (단일판매 공급계약 잔여금액 승계)",
+   "n": 1,
+   "n_correction": 1
+  },
+  {
+   "report": "주요사항보고서(타법인주식및출자증권양도결정)",
+   "n": 1,
+   "n_correction": 0
+  },
+  {
+   "report": "투자판단관련주요경영사항(그룹 전속 계약 체결의 건)",
+   "n": 1,
+   "n_correction": 0
+  }
+ ],
+ "watch_reports": [
+  {
+   "target": "전환사채권발행결정",
+   "n": 22,
+   "n_corps": 8,
+   "names": [
+    "주요사항보고서(전환사채권발행결정)"
+   ],
+   "corps": [
+    "디앤디파마텍",
+    "에스엠",
+    "에코프로비엠",
+    "우리기술",
+    "카카오",
+    "하이브",
+    "한국항공우주",
+    "한화오션"
+   ]
+  },
+  {
+   "target": "신주인수권부사채권발행결정",
+   "n": 0,
+   "n_corps": 0,
+   "names": [],
+   "corps": []
+  },
+  {
+   "target": "교환사채권발행결정",
+   "n": 4,
+   "n_corps": 2,
+   "names": [
+    "주요사항보고서(교환사채권발행결정)"
+   ],
+   "corps": [
+    "SK하이닉스",
+    "카카오"
+   ]
+  },
+  {
+   "target": "조건부자본증권발행결정",
+   "n": 71,
+   "n_corps": 4,
+   "names": [
+    "주요사항보고서(상각형조건부자본증권발행결정)"
+   ],
+   "corps": [
+    "KB금융",
+    "신한지주",
+    "우리금융지주",
+    "하나금융지주"
+   ]
+  },
+  {
+   "target": "유상증자결정",
+   "n": 56,
+   "n_corps": 13,
+   "names": [
+    "유상증자결정",
+    "주요사항보고서(유상증자결정)"
+   ],
+   "corps": [
+    "LG씨엔에스",
+    "OCI홀딩스",
+    "고려아연",
+    "두산로보틱스",
+    "레인보우로보틱스",
+    "삼성SDI",
+    "알테오젠",
+    "에스엠",
+    "파마리서치",
+    "하이브",
+    "한화솔루션",
+    "한화에어로스페이스",
+    "한화오션"
+   ]
+  },
+  {
+   "target": "무상증자결정",
+   "n": 5,
+   "n_corps": 4,
+   "names": [
+    "주요사항보고서(무상증자결정)"
+   ],
+   "corps": [
+    "디앤디파마텍",
+    "셀트리온",
+    "한미약품",
+    "현대글로비스"
+   ]
+  },
+  {
+   "target": "회사분할결정",
+   "n": 12,
+   "n_corps": 5,
+   "names": [
+    "주요사항보고서(회사분할결정)"
+   ],
+   "corps": [
+    "OCI홀딩스",
+    "삼성바이오로직스",
+    "엔씨소프트",
+    "파마리서치",
+    "한화에어로스페이스"
+   ]
+  },
+  {
+   "target": "회사합병결정",
+   "n": 24,
+   "n_corps": 13,
+   "names": [
+    "주요사항보고서(회사합병결정)"
+   ],
+   "corps": [
+    "HD현대중공업",
+    "KT",
+    "두산로보틱스",
+    "셀트리온",
+    "시프트업",
+    "에스엠",
+    "에코프로비엠",
+    "이마트",
+    "카카오",
+    "하이브",
+    "한화솔루션",
+    "한화에어로스페이스",
+    "한화오션"
+   ]
+  },
+  {
+   "target": "채무보증결정",
+   "n": 0,
+   "n_corps": 0,
+   "names": [],
+   "corps": []
+  },
+  {
+   "target": "타법인주식및출자증권취득결정",
+   "n": 0,
+   "n_corps": 0,
+   "names": [],
+   "corps": []
+  },
+  {
+   "target": "소송등의판결·결정",
+   "n": 0,
+   "n_corps": 0,
+   "names": [],
+   "corps": []
+  },
+  {
+   "target": "감자결정",
+   "n": 6,
+   "n_corps": 3,
+   "names": [
+    "주요사항보고서(감자결정)"
+   ],
+   "corps": [
+    "LG생활건강",
+    "OCI홀딩스",
+    "카카오"
+   ]
+  },
+  {
+   "target": "전환청구권행사",
+   "n": 0,
+   "n_corps": 0,
+   "names": [],
+   "corps": []
+  },
+  {
+   "target": "신주인수권행사",
+   "n": 0,
+   "n_corps": 0,
+   "names": [],
+   "corps": []
+  }
+ ],
+ "company_summary": [
+  {
+   "listed_name": "셀트리온",
+   "n_docs": 200,
+   "by_group": {
+    "exchange": 107,
+    "holding": 51,
+    "major": 29,
+    "periodic": 13
+   },
+   "n_correction": 9,
+   "first_dt": "20230201",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "한화오션",
+   "n_docs": 150,
+   "by_group": {
+    "exchange": 90,
+    "holding": 24,
+    "major": 18,
+    "periodic": 18
+   },
+   "n_correction": 61,
+   "first_dt": "20230112",
+   "last_dt": "20260513"
+  },
+  {
+   "listed_name": "대우건설",
+   "n_docs": 150,
+   "by_group": {
+    "exchange": 133,
+    "holding": 1,
+    "major": 1,
+    "periodic": 15
+   },
+   "n_correction": 73,
+   "first_dt": "20230113",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "삼성E&A",
+   "n_docs": 141,
+   "by_group": {
+    "exchange": 110,
+    "holding": 15,
+    "periodic": 16
+   },
+   "n_correction": 90,
+   "first_dt": "20230109",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "현대건설",
+   "n_docs": 135,
+   "by_group": {
+    "exchange": 113,
+    "holding": 6,
+    "periodic": 16
+   },
+   "n_correction": 75,
+   "first_dt": "20230103",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "삼성바이오로직스",
+   "n_docs": 117,
+   "by_group": {
+    "exchange": 97,
+    "holding": 3,
+    "major": 2,
+    "periodic": 15
+   },
+   "n_correction": 71,
+   "first_dt": "20230206",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "LIG넥스원",
+   "n_docs": 116,
+   "by_group": {
+    "exchange": 71,
+    "holding": 30,
+    "major": 1,
+    "periodic": 14
+   },
+   "n_correction": 29,
+   "first_dt": "20230117",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "에코프로비엠",
+   "n_docs": 106,
+   "by_group": {
+    "exchange": 3,
+    "holding": 79,
+    "major": 9,
+    "periodic": 15
+   },
+   "n_correction": 12,
+   "first_dt": "20230117",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "두산퓨얼셀",
+   "n_docs": 103,
+   "by_group": {
+    "exchange": 83,
+    "holding": 5,
+    "major": 2,
+    "periodic": 13
+   },
+   "n_correction": 45,
+   "first_dt": "20230331",
+   "last_dt": "20260514"
+  },
+  {
+   "listed_name": "삼성전자",
+   "n_docs": 100,
+   "by_group": {
+    "exchange": 2,
+    "holding": 66,
+    "major": 19,
+    "periodic": 13
+   },
+   "n_correction": 9,
+   "first_dt": "20230120",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "삼성중공업",
+   "n_docs": 100,
+   "by_group": {
+    "exchange": 75,
+    "holding": 9,
+    "periodic": 16
+   },
+   "n_correction": 35,
+   "first_dt": "20230201",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "한국항공우주",
+   "n_docs": 100,
+   "by_group": {
+    "exchange": 55,
+    "holding": 30,
+    "major": 1,
+    "periodic": 14
+   },
+   "n_correction": 23,
+   "first_dt": "20230224",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "고려아연",
+   "n_docs": 98,
+   "by_group": {
+    "exchange": 1,
+    "holding": 50,
+    "major": 29,
+    "periodic": 18
+   },
+   "n_correction": 20,
+   "first_dt": "20230203",
+   "last_dt": "20260601"
+  },
+  {
+   "listed_name": "한화에어로스페이스",
+   "n_docs": 98,
+   "by_group": {
+    "exchange": 50,
+    "holding": 19,
+    "major": 15,
+    "periodic": 14
+   },
+   "n_correction": 30,
+   "first_dt": "20230109",
+   "last_dt": "20260513"
+  },
+  {
+   "listed_name": "현대로템",
+   "n_docs": 94,
+   "by_group": {
+    "exchange": 70,
+    "holding": 10,
+    "periodic": 14
+   },
+   "n_correction": 25,
+   "first_dt": "20230202",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "HD현대중공업",
+   "n_docs": 84,
+   "by_group": {
+    "exchange": 61,
+    "holding": 8,
+    "major": 2,
+    "periodic": 13
+   },
+   "n_correction": 7,
+   "first_dt": "20230103",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "메리츠금융지주",
+   "n_docs": 75,
+   "by_group": {
+    "exchange": 2,
+    "holding": 22,
+    "major": 18,
+    "periodic": 33
+   },
+   "n_correction": 20,
+   "first_dt": "20230208",
+   "last_dt": "20260529"
+  },
+  {
+   "listed_name": "하나금융지주",
+   "n_docs": 72,
+   "by_group": {
+    "holding": 22,
+    "major": 32,
+    "periodic": 18
+   },
+   "n_correction": 19,
+   "first_dt": "20230203",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "효성중공업",
+   "n_docs": 72,
+   "by_group": {
+    "exchange": 38,
+    "holding": 16,
+    "periodic": 18
+   },
+   "n_correction": 18,
+   "first_dt": "20230130",
+   "last_dt": "20260514"
+  },
+  {
+   "listed_name": "크래프톤",
+   "n_docs": 71,
+   "by_group": {
+    "exchange": 2,
+    "holding": 43,
+    "major": 12,
+    "periodic": 14
+   },
+   "n_correction": 2,
+   "first_dt": "20230328",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "한전기술",
+   "n_docs": 68,
+   "by_group": {
+    "exchange": 42,
+    "holding": 9,
+    "major": 2,
+    "periodic": 15
+   },
+   "n_correction": 29,
+   "first_dt": "20230103",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "카카오",
+   "n_docs": 64,
+   "by_group": {
+    "holding": 7,
+    "major": 33,
+    "periodic": 24
+   },
+   "n_correction": 18,
+   "first_dt": "20230119",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "두산에너빌리티",
+   "n_docs": 64,
+   "by_group": {
+    "exchange": 24,
+    "holding": 16,
+    "major": 8,
+    "periodic": 16
+   },
+   "n_correction": 17,
+   "first_dt": "20230217",
+   "last_dt": "20260514"
+  },
+  {
+   "listed_name": "한미반도체",
+   "n_docs": 60,
+   "by_group": {
+    "exchange": 16,
+    "holding": 17,
+    "major": 14,
+    "periodic": 13
+   },
+   "n_correction": 0,
+   "first_dt": "20230324",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "KB금융",
+   "n_docs": 59,
+   "by_group": {
+    "holding": 9,
+    "major": 25,
+    "periodic": 25
+   },
+   "n_correction": 22,
+   "first_dt": "20230120",
+   "last_dt": "20260619"
+  },
+  {
+   "listed_name": "우리금융지주",
+   "n_docs": 59,
+   "by_group": {
+    "exchange": 3,
+    "holding": 8,
+    "major": 33,
+    "periodic": 15
+   },
+   "n_correction": 20,
+   "first_dt": "20230131",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "OCI홀딩스",
+   "n_docs": 59,
+   "by_group": {
+    "exchange": 14,
+    "holding": 16,
+    "major": 14,
+    "periodic": 15
+   },
+   "n_correction": 13,
+   "first_dt": "20230103",
+   "last_dt": "20260514"
+  },
+  {
+   "listed_name": "LS ELECTRIC",
+   "n_docs": 57,
+   "by_group": {
+    "exchange": 24,
+    "holding": 13,
+    "major": 6,
+    "periodic": 14
+   },
+   "n_correction": 12,
+   "first_dt": "20230103",
+   "last_dt": "20260514"
+  },
+  {
+   "listed_name": "한화솔루션",
+   "n_docs": 57,
+   "by_group": {
+    "exchange": 4,
+    "holding": 27,
+    "major": 9,
+    "periodic": 17
+   },
+   "n_correction": 12,
+   "first_dt": "20230104",
+   "last_dt": "20260514"
+  },
+  {
+   "listed_name": "KT",
+   "n_docs": 55,
+   "by_group": {
+    "exchange": 1,
+    "holding": 26,
+    "major": 14,
+    "periodic": 14
+   },
+   "n_correction": 3,
+   "first_dt": "20230209",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "하이브",
+   "n_docs": 54,
+   "by_group": {
+    "exchange": 1,
+    "holding": 21,
+    "major": 14,
+    "periodic": 18
+   },
+   "n_correction": 12,
+   "first_dt": "20230209",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "신한지주",
+   "n_docs": 51,
+   "by_group": {
+    "holding": 2,
+    "major": 35,
+    "periodic": 14
+   },
+   "n_correction": 15,
+   "first_dt": "20230116",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "SK하이닉스",
+   "n_docs": 50,
+   "by_group": {
+    "exchange": 4,
+    "holding": 14,
+    "major": 19,
+    "periodic": 13
+   },
+   "n_correction": 4,
+   "first_dt": "20230201",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "아모레퍼시픽",
+   "n_docs": 50,
+   "by_group": {
+    "exchange": 1,
+    "holding": 17,
+    "major": 19,
+    "periodic": 13
+   },
+   "n_correction": 3,
+   "first_dt": "20230103",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "HMM",
+   "n_docs": 50,
+   "by_group": {
+    "exchange": 14,
+    "holding": 20,
+    "major": 1,
+    "periodic": 15
+   },
+   "n_correction": 8,
+   "first_dt": "20230214",
+   "last_dt": "20260513"
+  },
+  {
+   "listed_name": "와이지엔터테인먼트",
+   "n_docs": 49,
+   "by_group": {
+    "exchange": 1,
+    "holding": 33,
+    "periodic": 15
+   },
+   "n_correction": 2,
+   "first_dt": "20230102",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "HD현대일렉트릭",
+   "n_docs": 48,
+   "by_group": {
+    "exchange": 26,
+    "holding": 8,
+    "periodic": 14
+   },
+   "n_correction": 9,
+   "first_dt": "20230103",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "우리기술",
+   "n_docs": 47,
+   "by_group": {
+    "exchange": 18,
+    "holding": 7,
+    "major": 9,
+    "periodic": 13
+   },
+   "n_correction": 10,
+   "first_dt": "20230102",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "이마트",
+   "n_docs": 45,
+   "by_group": {
+    "exchange": 3,
+    "holding": 13,
+    "major": 16,
+    "periodic": 13
+   },
+   "n_correction": 4,
+   "first_dt": "20230515",
+   "last_dt": "20260514"
+  },
+  {
+   "listed_name": "한미약품",
+   "n_docs": 44,
+   "by_group": {
+    "exchange": 17,
+    "holding": 11,
+    "major": 2,
+    "periodic": 14
+   },
+   "n_correction": 4,
+   "first_dt": "20230227",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "에스엠",
+   "n_docs": 42,
+   "by_group": {
+    "holding": 16,
+    "major": 10,
+    "periodic": 16
+   },
+   "n_correction": 9,
+   "first_dt": "20230207",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "LG에너지솔루션",
+   "n_docs": 40,
+   "by_group": {
+    "exchange": 21,
+    "holding": 6,
+    "periodic": 13
+   },
+   "n_correction": 4,
+   "first_dt": "20230202",
+   "last_dt": "20260514"
+  },
+  {
+   "listed_name": "삼성생명",
+   "n_docs": 40,
+   "by_group": {
+    "holding": 15,
+    "periodic": 25
+   },
+   "n_correction": 12,
+   "first_dt": "20230224",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "현대글로비스",
+   "n_docs": 40,
+   "by_group": {
+    "exchange": 9,
+    "holding": 15,
+    "major": 1,
+    "periodic": 15
+   },
+   "n_correction": 6,
+   "first_dt": "20230126",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "레인보우로보틱스",
+   "n_docs": 38,
+   "by_group": {
+    "exchange": 13,
+    "holding": 10,
+    "major": 1,
+    "periodic": 14
+   },
+   "n_correction": 10,
+   "first_dt": "20230103",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "미래에셋증권",
+   "n_docs": 38,
+   "by_group": {
+    "holding": 11,
+    "major": 8,
+    "periodic": 19
+   },
+   "n_correction": 10,
+   "first_dt": "20230220",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "NAVER",
+   "n_docs": 38,
+   "by_group": {
+    "exchange": 3,
+    "holding": 5,
+    "major": 17,
+    "periodic": 13
+   },
+   "n_correction": 7,
+   "first_dt": "20230102",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "파마리서치",
+   "n_docs": 38,
+   "by_group": {
+    "exchange": 1,
+    "holding": 19,
+    "major": 4,
+    "periodic": 14
+   },
+   "n_correction": 4,
+   "first_dt": "20230103",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "현대차",
+   "n_docs": 37,
+   "by_group": {
+    "holding": 12,
+    "major": 12,
+    "periodic": 13
+   },
+   "n_correction": 0,
+   "first_dt": "20230222",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "엔씨소프트",
+   "n_docs": 36,
+   "by_group": {
+    "exchange": 3,
+    "holding": 12,
+    "major": 6,
+    "periodic": 15
+   },
+   "n_correction": 5,
+   "first_dt": "20230222",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "알테오젠",
+   "n_docs": 36,
+   "by_group": {
+    "exchange": 17,
+    "holding": 5,
+    "major": 1,
+    "periodic": 13
+   },
+   "n_correction": 1,
+   "first_dt": "20230207",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "LG이노텍",
+   "n_docs": 35,
+   "by_group": {
+    "exchange": 3,
+    "holding": 15,
+    "periodic": 17
+   },
+   "n_correction": 4,
+   "first_dt": "20230103",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "현대모비스",
+   "n_docs": 34,
+   "by_group": {
+    "holding": 9,
+    "major": 11,
+    "periodic": 14
+   },
+   "n_correction": 2,
+   "first_dt": "20230404",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "두산로보틱스",
+   "n_docs": 34,
+   "by_group": {
+    "exchange": 1,
+    "holding": 8,
+    "major": 14,
+    "periodic": 11
+   },
+   "n_correction": 12,
+   "first_dt": "20230823",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "SK텔레콤",
+   "n_docs": 33,
+   "by_group": {
+    "holding": 6,
+    "major": 14,
+    "periodic": 13
+   },
+   "n_correction": 0,
+   "first_dt": "20230208",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "디앤디파마텍",
+   "n_docs": 32,
+   "by_group": {
+    "exchange": 4,
+    "holding": 16,
+    "major": 4,
+    "periodic": 8
+   },
+   "n_correction": 1,
+   "first_dt": "20240503",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "기아",
+   "n_docs": 30,
+   "by_group": {
+    "holding": 4,
+    "major": 11,
+    "periodic": 15
+   },
+   "n_correction": 4,
+   "first_dt": "20230127",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "현대제철",
+   "n_docs": 30,
+   "by_group": {
+    "exchange": 1,
+    "holding": 16,
+    "periodic": 13
+   },
+   "n_correction": 1,
+   "first_dt": "20230106",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "현대오토에버",
+   "n_docs": 29,
+   "by_group": {
+    "exchange": 4,
+    "holding": 9,
+    "major": 2,
+    "periodic": 14
+   },
+   "n_correction": 2,
+   "first_dt": "20230327",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "LG씨엔에스",
+   "n_docs": 28,
+   "by_group": {
+    "exchange": 7,
+    "holding": 6,
+    "major": 2,
+    "periodic": 13
+   },
+   "n_correction": 1,
+   "first_dt": "20230515",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "삼성화재",
+   "n_docs": 26,
+   "by_group": {
+    "holding": 5,
+    "periodic": 21
+   },
+   "n_correction": 8,
+   "first_dt": "20230404",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "JYP Ent",
+   "n_docs": 26,
+   "by_group": {
+    "exchange": 1,
+    "holding": 9,
+    "major": 3,
+    "periodic": 13
+   },
+   "n_correction": 3,
+   "first_dt": "20230404",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "삼성SDI",
+   "n_docs": 25,
+   "by_group": {
+    "exchange": 4,
+    "holding": 3,
+    "major": 5,
+    "periodic": 13
+   },
+   "n_correction": 4,
+   "first_dt": "20230515",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "LG생활건강",
+   "n_docs": 25,
+   "by_group": {
+    "holding": 11,
+    "major": 1,
+    "periodic": 13
+   },
+   "n_correction": 0,
+   "first_dt": "20230515",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "LG유플러스",
+   "n_docs": 24,
+   "by_group": {
+    "exchange": 1,
+    "holding": 7,
+    "major": 2,
+    "periodic": 14
+   },
+   "n_correction": 1,
+   "first_dt": "20230404",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "CJ제일제당",
+   "n_docs": 21,
+   "by_group": {
+    "holding": 7,
+    "periodic": 14
+   },
+   "n_correction": 1,
+   "first_dt": "20230404",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "삼성전기",
+   "n_docs": 20,
+   "by_group": {
+    "holding": 6,
+    "periodic": 14
+   },
+   "n_correction": 1,
+   "first_dt": "20230515",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "POSCO홀딩스",
+   "n_docs": 20,
+   "by_group": {
+    "holding": 4,
+    "major": 2,
+    "periodic": 14
+   },
+   "n_correction": 1,
+   "first_dt": "20230317",
+   "last_dt": "20260515"
+  },
+  {
+   "listed_name": "시프트업",
+   "n_docs": 19,
+   "by_group": {
+    "holding": 8,
+    "major": 4,
+    "periodic": 7
+   },
+   "n_correction": 0,
+   "first_dt": "20240718",
+   "last_dt": "20260514"
+  },
+  {
+   "listed_name": "세아베스틸지주",
+   "n_docs": 18,
+   "by_group": {
+    "holding": 5,
+    "periodic": 13
+   },
+   "n_correction": 0,
+   "first_dt": "20230502",
+   "last_dt": "20260515"
+  }
+ ],
+ "correction_density": [
+  {
+   "listed_name": "삼성E&A",
+   "n_docs": 141,
+   "by_group": {
+    "exchange": 110,
+    "holding": 15,
+    "periodic": 16
+   },
+   "n_correction": 90,
+   "first_dt": "20230109",
+   "last_dt": "20260515",
+   "correction_pct": 63.8
+  },
+  {
+   "listed_name": "삼성바이오로직스",
+   "n_docs": 117,
+   "by_group": {
+    "exchange": 97,
+    "holding": 3,
+    "major": 2,
+    "periodic": 15
+   },
+   "n_correction": 71,
+   "first_dt": "20230206",
+   "last_dt": "20260515",
+   "correction_pct": 60.7
+  },
+  {
+   "listed_name": "현대건설",
+   "n_docs": 135,
+   "by_group": {
+    "exchange": 113,
+    "holding": 6,
+    "periodic": 16
+   },
+   "n_correction": 75,
+   "first_dt": "20230103",
+   "last_dt": "20260515",
+   "correction_pct": 55.6
+  },
+  {
+   "listed_name": "대우건설",
+   "n_docs": 150,
+   "by_group": {
+    "exchange": 133,
+    "holding": 1,
+    "major": 1,
+    "periodic": 15
+   },
+   "n_correction": 73,
+   "first_dt": "20230113",
+   "last_dt": "20260515",
+   "correction_pct": 48.7
+  },
+  {
+   "listed_name": "두산퓨얼셀",
+   "n_docs": 103,
+   "by_group": {
+    "exchange": 83,
+    "holding": 5,
+    "major": 2,
+    "periodic": 13
+   },
+   "n_correction": 45,
+   "first_dt": "20230331",
+   "last_dt": "20260514",
+   "correction_pct": 43.7
+  },
+  {
+   "listed_name": "한전기술",
+   "n_docs": 68,
+   "by_group": {
+    "exchange": 42,
+    "holding": 9,
+    "major": 2,
+    "periodic": 15
+   },
+   "n_correction": 29,
+   "first_dt": "20230103",
+   "last_dt": "20260515",
+   "correction_pct": 42.6
+  },
+  {
+   "listed_name": "한화오션",
+   "n_docs": 150,
+   "by_group": {
+    "exchange": 90,
+    "holding": 24,
+    "major": 18,
+    "periodic": 18
+   },
+   "n_correction": 61,
+   "first_dt": "20230112",
+   "last_dt": "20260513",
+   "correction_pct": 40.7
+  },
+  {
+   "listed_name": "KB금융",
+   "n_docs": 59,
+   "by_group": {
+    "holding": 9,
+    "major": 25,
+    "periodic": 25
+   },
+   "n_correction": 22,
+   "first_dt": "20230120",
+   "last_dt": "20260619",
+   "correction_pct": 37.3
+  },
+  {
+   "listed_name": "두산로보틱스",
+   "n_docs": 34,
+   "by_group": {
+    "exchange": 1,
+    "holding": 8,
+    "major": 14,
+    "periodic": 11
+   },
+   "n_correction": 12,
+   "first_dt": "20230823",
+   "last_dt": "20260515",
+   "correction_pct": 35.3
+  },
+  {
+   "listed_name": "삼성중공업",
+   "n_docs": 100,
+   "by_group": {
+    "exchange": 75,
+    "holding": 9,
+    "periodic": 16
+   },
+   "n_correction": 35,
+   "first_dt": "20230201",
+   "last_dt": "20260515",
+   "correction_pct": 35.0
+  },
+  {
+   "listed_name": "우리금융지주",
+   "n_docs": 59,
+   "by_group": {
+    "exchange": 3,
+    "holding": 8,
+    "major": 33,
+    "periodic": 15
+   },
+   "n_correction": 20,
+   "first_dt": "20230131",
+   "last_dt": "20260515",
+   "correction_pct": 33.9
+  },
+  {
+   "listed_name": "삼성화재",
+   "n_docs": 26,
+   "by_group": {
+    "holding": 5,
+    "periodic": 21
+   },
+   "n_correction": 8,
+   "first_dt": "20230404",
+   "last_dt": "20260515",
+   "correction_pct": 30.8
+  },
+  {
+   "listed_name": "한화에어로스페이스",
+   "n_docs": 98,
+   "by_group": {
+    "exchange": 50,
+    "holding": 19,
+    "major": 15,
+    "periodic": 14
+   },
+   "n_correction": 30,
+   "first_dt": "20230109",
+   "last_dt": "20260513",
+   "correction_pct": 30.6
+  },
+  {
+   "listed_name": "삼성생명",
+   "n_docs": 40,
+   "by_group": {
+    "holding": 15,
+    "periodic": 25
+   },
+   "n_correction": 12,
+   "first_dt": "20230224",
+   "last_dt": "20260515",
+   "correction_pct": 30.0
+  },
+  {
+   "listed_name": "신한지주",
+   "n_docs": 51,
+   "by_group": {
+    "holding": 2,
+    "major": 35,
+    "periodic": 14
+   },
+   "n_correction": 15,
+   "first_dt": "20230116",
+   "last_dt": "20260515",
+   "correction_pct": 29.4
+  }
+ ],
+ "query_timeline": {
+  "company": "에스엠",
+  "from": "20230201",
+  "to": "20230430",
+  "rows": [
+   {
+    "rcept_dt": "20230207",
+    "doc_group": "major",
+    "report_nm": "주요사항보고서(전환사채권발행결정)",
+    "rcept_no": "20230207000196",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230207",
+    "doc_group": "major",
+    "report_nm": "주요사항보고서(유상증자결정)",
+    "rcept_no": "20230207000209",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230216",
+    "doc_group": "holding",
+    "report_nm": "주식등의대량보유상황보고서(일반)",
+    "rcept_no": "20230216000137",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230216",
+    "doc_group": "holding",
+    "report_nm": "주식등의대량보유상황보고서(일반)",
+    "rcept_no": "20230216000155",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230222",
+    "doc_group": "holding",
+    "report_nm": "주식등의대량보유상황보고서(일반)",
+    "rcept_no": "20230222000951",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230223",
+    "doc_group": "holding",
+    "report_nm": "주식등의대량보유상황보고서(일반)",
+    "rcept_no": "20230223002586",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230224",
+    "doc_group": "major",
+    "report_nm": "[기재정정]주요사항보고서(유상증자결정)",
+    "rcept_no": "20230224003382",
+    "is_correction": true
+   },
+   {
+    "rcept_dt": "20230227",
+    "doc_group": "major",
+    "report_nm": "주요사항보고서(자기주식취득신탁계약체결결정)",
+    "rcept_no": "20230227006069",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230303",
+    "doc_group": "holding",
+    "report_nm": "주식등의대량보유상황보고서(약식)",
+    "rcept_no": "20230303000128",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230306",
+    "doc_group": "major",
+    "report_nm": "[기재정정]주요사항보고서(유상증자결정)",
+    "rcept_no": "20230306000007",
+    "is_correction": true
+   },
+   {
+    "rcept_dt": "20230306",
+    "doc_group": "major",
+    "report_nm": "[기재정정]주요사항보고서(전환사채권발행결정)",
+    "rcept_no": "20230306000008",
+    "is_correction": true
+   },
+   {
+    "rcept_dt": "20230313",
+    "doc_group": "major",
+    "report_nm": "[기재정정]주요사항보고서(자기주식취득신탁계약체결결정)",
+    "rcept_no": "20230313000016",
+    "is_correction": true
+   },
+   {
+    "rcept_dt": "20230313",
+    "doc_group": "holding",
+    "report_nm": "주식등의대량보유상황보고서(일반)",
+    "rcept_no": "20230313000054",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230328",
+    "doc_group": "holding",
+    "report_nm": "주식등의대량보유상황보고서(일반)",
+    "rcept_no": "20230328001096",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230403",
+    "doc_group": "holding",
+    "report_nm": "주식등의대량보유상황보고서(약식)",
+    "rcept_no": "20230403004239",
+    "is_correction": false
+   },
+   {
+    "rcept_dt": "20230406",
+    "doc_group": "holding",
+    "report_nm": "주식등의대량보유상황보고서(일반)",
+    "rcept_no": "20230406001043",
+    "is_correction": false
+   }
+  ]
+ }
+}
