@@ -1,0 +1,261 @@
+[
+  {
+    "qid": "H01",
+    "company": "삼성전자",
+    "question": "삼성전자의 2024년 11월과 2025년 2월 자기주식 취득결정의 최종 정정본 기준 총 취득예정금액을 각각 계산하고 차이를 구하라. 보통주와 기타주식 금액을 각각 제시하라.",
+    "capability": "versioned_event_sum_diff",
+    "gold_status": "core_values_verified",
+    "required": [
+      "건별 최종 판본",
+      "주식종류별 금액",
+      "부호 있는 총액 차이"
+    ]
+  },
+  {
+    "qid": "H02",
+    "company": "삼성전자",
+    "question": "삼성전자의 2024년 11월과 2025년 2월 자기주식 취득결정에서 보통주 취득예정금액과 기타주식 취득예정금액은 각각 얼마나 변했는가. 두 변화가 총액 변화에서 상쇄되는지도 검산하라.",
+    "capability": "component_bridge",
+    "gold_status": "core_values_verified",
+    "required": [
+      "보통주 +13,620,234,000원",
+      "기타주식 -13,620,251,400원",
+      "잔차 -17,400원"
+    ]
+  },
+  {
+    "qid": "H03",
+    "company": "삼성전자",
+    "question": "삼성전자 자기주식 취득금액 한도 산식에서 직전 사업연도말 이후 취득액은 차감하고 처분주식 취득원가는 가산하는 이유를 설명하라.",
+    "capability": "formula_semantics",
+    "gold_status": "needs_rule_source",
+    "required": [
+      "원문 한도 산식",
+      "처분대금과 취득원가 구분",
+      "회계 처리와 법정 한도 산식 근거 구분"
+    ]
+  },
+  {
+    "qid": "H04",
+    "company": "삼성전자",
+    "question": "삼성전자 보통주와 우선주의 1일 매수한도가 서로 다른 기준으로 결정된 이유를 취득신고수량과 거래량의 상대적 크기를 이용해 설명하라.",
+    "capability": "formula_ast_min_max",
+    "gold_status": "needs_event_date",
+    "required": [
+      "min(max(A,B),C)",
+      "주식종류별 A B C 실제값",
+      "활성 제약과 탈락 후보"
+    ]
+  },
+  {
+    "qid": "H05",
+    "company": "삼성전자",
+    "question": "삼성전자 자기주식 처분공시에서 처분주식 수와 처분목적을 정리하고, 해당 처분이 주주가치 제고 목적 자기주식 소각과 동일한 사건인지 구분하라.",
+    "capability": "event_identity",
+    "gold_status": "needs_event_date",
+    "required": [
+      "처분 수량과 목적",
+      "소각 공시와 사건 구분",
+      "자기주식수와 발행주식총수 구분"
+    ]
+  },
+  {
+    "qid": "H06",
+    "company": "삼성전자",
+    "question": "삼성전자 자기주식 취득액 중 주주가치 제고 목적과 임직원 보상 목적이 구분되어 있다면 각각의 규모와 전체에서 차지하는 비중을 계산하라.",
+    "capability": "purpose_allocation",
+    "gold_status": "needs_event_scope",
+    "required": [
+      "목적별 귀속 근거",
+      "부분합과 결정총액 대사",
+      "반올림 오차와 대상 공시"
+    ]
+  },
+  {
+    "qid": "H07",
+    "company": null,
+    "question": "주식이 소각됐는데도 납입자본금이 감소하지 않은 이유를 설명하고, 만약 감자였다면 어떤 재무제표 항목이 달라졌어야 하는지 답하라.",
+    "capability": "counterfactual_accounting",
+    "gold_status": "needs_company_event",
+    "required": [
+      "회사와 사건 특정",
+      "소각의 법적 근거",
+      "관측 사실과 반사실 가정 분리"
+    ]
+  },
+  {
+    "qid": "H08",
+    "company": "삼성전자",
+    "question": "삼성전자 2023년 별도 당기순이익과 연결 당기순이익을 비교하고, 어느 손익항목이 가장 중요한 원인인지 금액으로 확인하라.",
+    "capability": "basis_bridge",
+    "gold_status": "core_values_verified_cause_pending",
+    "required": [
+      "연결 15,487,100백만원",
+      "별도 25,397,099백만원",
+      "기타이익 차이 28,462,867백만원",
+      "배당수익 주석과 연결 제거 근거"
+    ]
+  },
+  {
+    "qid": "H09",
+    "company": "삼성전자",
+    "question": "삼성전자 2025년 기준 DS 부문 영업이익이 전사 영업이익에서 차지하는 비중을 계산하고 공시에 기재된 비율과 대조하라.",
+    "capability": "ratio_rounding_reconcile",
+    "gold_status": "core_values_verified",
+    "required": [
+      "24,858,075백만원 / 43,601,051백만원",
+      "57.01%",
+      "기재 57.0%와 반올림 정합"
+    ]
+  },
+  {
+    "qid": "H10",
+    "company": "삼성전자",
+    "question": "삼성전자 2025년 기준 DS 부문의 매출 비중과 영업이익 비중을 각각 계산하고 두 비중이 왜 다를 수 있는지 공시 숫자만으로 설명하라.",
+    "capability": "margin_decomposition",
+    "gold_status": "core_values_verified",
+    "required": [
+      "매출 비중 39.01%",
+      "영업이익 비중 57.01%",
+      "DS 영업이익률 19.10%",
+      "전사 영업이익률 13.07%",
+      "숫자에서 확인되는 관계와 사업 원인 추정 구분"
+    ]
+  },
+  {
+    "qid": "H11",
+    "company": "삼성E&A",
+    "question": "삼성E&A의 한 정정공시에 계약금액과 계약기간이 동시에 변경된 사례가 있다면 사유 발생 횟수 기준 집계에서 몇 번으로 세어야 하는지 실제 사례로 설명하라.",
+    "capability": "document_event_grain",
+    "gold_status": "example_verified",
+    "required": [
+      "접수번호 20241230800946",
+      "문서 1건",
+      "계약금액 1회와 계약기간 1회",
+      "정정 전후 표"
+    ]
+  },
+  {
+    "qid": "H12",
+    "company": "삼성E&A",
+    "question": "삼성E&A의 최초 공시 이후 가장 많은 횟수의 정정을 거친 계약을 찾고 정정 차수와 각 정정일을 시간순으로 정리하라.",
+    "capability": "event_version_graph",
+    "gold_status": "needs_corpus_wide_verification",
+    "required": [
+      "원계약 식별",
+      "정정 전수 연결",
+      "접수번호 중복 제거",
+      "동률과 미연결 문서",
+      "기간 밖 원본 한계"
+    ]
+  },
+  {
+    "qid": "H13",
+    "company": "에코프로비엠",
+    "question": "에코프로비엠 제5회 CB의 전환청구기간 시작일과 종료일, 사채 만기일을 제시하고 2026년 9월 1일에 날짜 조건만으로 전환청구기간에 해당하는지 판단하라.",
+    "capability": "contract_interval",
+    "gold_status": "contract_dates_verified",
+    "required": [
+      "2024-07-24~2028-06-24",
+      "청구 종료일과 사채 만기 구분",
+      "범위 안 날짜 판정",
+      "미상환 잔액 및 실제 행사 가능 여부 미확인",
+      "사채만기일 2028-07-24"
+    ]
+  },
+  {
+    "qid": "H14",
+    "company": "에코프로비엠",
+    "question": "에코프로비엠 제5회 CB의 발행총액과 최초 전환가액으로 최초 전환가능주식수를 계산하고, 계약상 최저 조정가액까지 하락할 경우 전환가능주식수와 증가분을 계산하라.",
+    "capability": "conditional_dilution",
+    "gold_status": "terms_and_fractional_share_clause_verified",
+    "required": [
+      "440,000,000,000원",
+      "275,000원/주",
+      "206,250원/주",
+      "1,600,000주",
+      "2,133,333주 및 단주 처리 조건",
+      "현실의 조정 발생과 가정 구분"
+    ]
+  },
+  {
+    "qid": "H15",
+    "company": "OCI홀딩스",
+    "question": "OCI홀딩스 인적분할 전후 매출 비교에서 계속영업·중단영업 또는 비교가능 수치가 따로 제시되어 있다면 단순 보고매출액과 어떤 차이가 있는지 설명하라.",
+    "capability": "restated_comparative",
+    "gold_status": "needs_revenue_basis_verification",
+    "required": [
+      "원보고와 재작성 비교값 판본",
+      "계속영업·중단영업 범위",
+      "457,932,329천원 + 252,412,306천원 = 710,344,635천원",
+      "백만원 환산 전 원 단위 합산"
+    ]
+  },
+  {
+    "qid": "H16",
+    "company": "미래에셋증권",
+    "question": "미래에셋증권의 최상단 수익항목을 찾아 일반 제조업의 매출액과 계정구조가 어떻게 다른지 공시 양식으로 설명하라.",
+    "capability": "industry_account_taxonomy",
+    "gold_status": "needs_period_and_rows",
+    "required": [
+      "영업수익 원문",
+      "수수료·이자·금융상품 관련 구성",
+      "총액과 순액 표시 기준",
+      "단순 규모 비교 한계"
+    ]
+  },
+  {
+    "qid": "H17",
+    "company": "현대건설",
+    "question": "현대건설의 계약자산과 계약부채가 동시에 증가한 연도가 있다면 두 계정이 서로 상쇄되는 개념인지 설명하라.",
+    "capability": "contract_level_netting",
+    "gold_status": "2020_2021_comparatives_unverified",
+    "required": [
+      "동일 기준 두 연도 실측",
+      "회사 합계와 계약별 순포지션 구분",
+      "2020/2021 자료 실제 수록 여부",
+      "한계 시 임의 연도 대체 금지"
+    ]
+  },
+  {
+    "qid": "H18",
+    "company": "셀트리온",
+    "question": "셀트리온의 2023년과 2024년 연결기준 지배주주 귀속 순이익과 기본주당이익을 비교하여 각각의 증감률을 계산하라. EPS는 2024년 사업보고서에서 비교표시된 2023년 수치를 사용한다. 두 증감률 차이를 합병과 가중평균유통보통주식수로 설명하라.",
+    "capability": "eps_denominator_bridge",
+    "gold_status": "provided_eps_conflicts_with_selected_report",
+    "required": [
+      "접수번호 20250317000929",
+      "535,647,963,959원→422,691,724,154원",
+      "기본 EPS 3,759원→2,048원",
+      "가중평균 142,487,097주→206,393,035주",
+      "기본/희석 및 재작성 판본 혼동 금지"
+    ]
+  },
+  {
+    "qid": "H19",
+    "company": "POSCO홀딩스",
+    "question": "POSCO홀딩스의 2025년 연결재무제표에서 삼척블루파워의 지분법이익과 배당금 수령액을 찾아 배당이 별도 수익으로 다시 인식되는지 확인하라.",
+    "capability": "equity_method_rollforward",
+    "gold_status": "rollforward_verified",
+    "required": [
+      "접수번호 20260311004517",
+      "지분법손익 7,595백만원",
+      "배당금수령 (2,795)백만원",
+      "392,269 + 17,509 - 2,795 + 7,595 + 7,121 = 421,699백만원"
+    ]
+  },
+  {
+    "qid": "H20",
+    "company": "KB증권",
+    "question": "KB증권에서 특정 자본증권 발행 전후 자본총계의 변화와 발행액을 비교하되 둘이 정확히 일치하지 않는 이유가 있는지 공시로 확인하라.",
+    "capability": "equity_rollforward",
+    "gold_status": "question_issuer_conflicts_with_provided_answer",
+    "required": [
+      "KB증권과 KB금융지주 별도 구분",
+      "발행액과 장부 증가액 구분",
+      "기초 + 개별 자본변동 = 기말 검산",
+      "질문 주체 확인 전 KB금융 수치로 대체 금지"
+    ],
+    "provided_answer_company": "KB금융"
+  }
+]

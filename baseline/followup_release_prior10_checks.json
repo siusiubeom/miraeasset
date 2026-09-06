@@ -1,0 +1,438 @@
+{
+  "notice": "필수 항목 및 출처 검사는 문장 의미의 정답 판정을 대신하지 않는다. HARD20_EVALUATION.md의 원문 대조 기록과 함께 사용한다.",
+  "three_run_candidates": [
+    "H01",
+    "H02",
+    "H03",
+    "H04",
+    "H09",
+    "H10",
+    "H11",
+    "H13",
+    "H14",
+    "H19"
+  ],
+  "three_run_candidate_count": 10,
+  "rows": [
+    {
+      "qid": "H01",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H01",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H01",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H02",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H02",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H02",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H03",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H03",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H03",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H04",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H04",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H04",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H05",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H05",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H05",
+      "run": 3,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H06",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H06",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H06",
+      "run": 3,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H07",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H07",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H07",
+      "run": 3,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H08",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H08",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H08",
+      "run": 3,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H09",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H09",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H09",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H10",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H10",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H10",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H11",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H11",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H11",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H12",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H12",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H12",
+      "run": 3,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H13",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H13",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H13",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H14",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H14",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H14",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H15",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H15",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H15",
+      "run": 3,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H16",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H16",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H16",
+      "run": 3,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H17",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H17",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H17",
+      "run": 3,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H18",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H18",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H18",
+      "run": 3,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H19",
+      "run": 1,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H19",
+      "run": 2,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H19",
+      "run": 3,
+      "missing": [],
+      "source_ok": true,
+      "contradiction": false,
+      "api_ok": true,
+      "status": "review_candidate"
+    },
+    {
+      "qid": "H20",
+      "run": 1,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H20",
+      "run": 2,
+      "status": "not_reviewed"
+    },
+    {
+      "qid": "H20",
+      "run": 3,
+      "status": "not_reviewed"
+    }
+  ]
+}

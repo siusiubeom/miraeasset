@@ -1,0 +1,576 @@
+{
+  "notice": "내부 원문·의미 검토는 FOLLOWUP_EVALUATION.md 참조. 공식 채점이 아니며 한계 응답은 정답 수에 포함하지 않는다.",
+  "three_run_passed": [
+    "H01",
+    "H02",
+    "H03",
+    "H04",
+    "H05",
+    "H06",
+    "H08",
+    "H09",
+    "H10",
+    "H11",
+    "H13",
+    "H14",
+    "H15",
+    "H16",
+    "H18",
+    "H19"
+  ],
+  "passed_count": 16,
+  "rows": [
+    {
+      "qid": "H01",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "d1d2b3369574e5bcc4e228d61fe5aba6eb96fd6851f7ab947d49de63fc2f2f71",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H01",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "d1d2b3369574e5bcc4e228d61fe5aba6eb96fd6851f7ab947d49de63fc2f2f71",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H01",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "6815482713af632ea77312517085dee8824867c7dd53537130f220bfef9de025",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H02",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "c27c24b995d1249846672f5c980747b97409630f9208546bbd329906960ae8a6",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H02",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "a03f726dcb1dd31f76952b836a871a0b40eaf2144e2512353824af87ebb2c602",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H02",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "a87f58977ef5d09c6feef9dc928ce00bf985c5814ed099948f6be3e81411d186",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H03",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "1270f9bd84482bf5691f97112c231bc9bca1f2c5a7659edf77453a50c1202c96",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H03",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "1270f9bd84482bf5691f97112c231bc9bca1f2c5a7659edf77453a50c1202c96",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H03",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "1270f9bd84482bf5691f97112c231bc9bca1f2c5a7659edf77453a50c1202c96",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H04",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "8481131c12dae7597598d9c360ff8fcee1cea2ff80028aee202e0c302f4b00a7",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H04",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "8481131c12dae7597598d9c360ff8fcee1cea2ff80028aee202e0c302f4b00a7",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H04",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "8481131c12dae7597598d9c360ff8fcee1cea2ff80028aee202e0c302f4b00a7",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H05",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [
+        "처분 예정"
+      ],
+      "unsupported_receipts": [],
+      "answer_sha256": "6d32161fea910c8ea486bcd19c1984ed5e891ef59989488fd3561fbebe9c9322",
+      "artifact": "followup_release_3runs.json",
+      "literal_status": "check_failed",
+      "manual_review": "문자열 검사에서 처분 예정이라는 연속 어구가 없어 실패했으나, 실제 응답의 처분결정에 기재된 예정 수량 및 지급 완료 수량 미확정 문장을 확인해 의미 기준을 충족함."
+    },
+    {
+      "qid": "H05",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [
+        "처분 예정"
+      ],
+      "unsupported_receipts": [],
+      "answer_sha256": "6d32161fea910c8ea486bcd19c1984ed5e891ef59989488fd3561fbebe9c9322",
+      "artifact": "followup_release_3runs.json",
+      "literal_status": "check_failed",
+      "manual_review": "문자열 검사에서 처분 예정이라는 연속 어구가 없어 실패했으나, 실제 응답의 처분결정에 기재된 예정 수량 및 지급 완료 수량 미확정 문장을 확인해 의미 기준을 충족함."
+    },
+    {
+      "qid": "H05",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [
+        "처분 예정"
+      ],
+      "unsupported_receipts": [],
+      "answer_sha256": "6d32161fea910c8ea486bcd19c1984ed5e891ef59989488fd3561fbebe9c9322",
+      "artifact": "followup_release_3runs.json",
+      "literal_status": "check_failed",
+      "manual_review": "문자열 검사에서 처분 예정이라는 연속 어구가 없어 실패했으나, 실제 응답의 처분결정에 기재된 예정 수량 및 지급 완료 수량 미확정 문장을 확인해 의미 기준을 충족함."
+    },
+    {
+      "qid": "H06",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "aa4db4fb34c5eca0554cb581b2ee7cebdeb8617b2fc58ee4a571e0d4009d80d5",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H06",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "aa4db4fb34c5eca0554cb581b2ee7cebdeb8617b2fc58ee4a571e0d4009d80d5",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H06",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "aa4db4fb34c5eca0554cb581b2ee7cebdeb8617b2fc58ee4a571e0d4009d80d5",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H07",
+      "run": 1,
+      "status": "needs_question_clarification",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "17a639b7c53e55adc20c18fa48ab028086dcf4da6b2352b586c79e1766232b7f",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H07",
+      "run": 2,
+      "status": "needs_question_clarification",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "17a639b7c53e55adc20c18fa48ab028086dcf4da6b2352b586c79e1766232b7f",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H07",
+      "run": 3,
+      "status": "needs_question_clarification",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "17a639b7c53e55adc20c18fa48ab028086dcf4da6b2352b586c79e1766232b7f",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H08",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "89b3022aafe8c8eed64201441b83c79e614cda063fd96e5c7e270a99e090dd89",
+      "artifact": "followup_source_fix_3runs.json"
+    },
+    {
+      "qid": "H08",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "89b3022aafe8c8eed64201441b83c79e614cda063fd96e5c7e270a99e090dd89",
+      "artifact": "followup_source_fix_3runs.json"
+    },
+    {
+      "qid": "H08",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "89b3022aafe8c8eed64201441b83c79e614cda063fd96e5c7e270a99e090dd89",
+      "artifact": "followup_source_fix_3runs.json"
+    },
+    {
+      "qid": "H09",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "9acad4e3857fc689f1b2e1866c8d00ebbb05fd6f6bcf532c7c2d3bf48c1eccfd",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H09",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "9acad4e3857fc689f1b2e1866c8d00ebbb05fd6f6bcf532c7c2d3bf48c1eccfd",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H09",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "9acad4e3857fc689f1b2e1866c8d00ebbb05fd6f6bcf532c7c2d3bf48c1eccfd",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H10",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "416a7715257318a1893678a9d9bebe76849b65202b37f0f987379812d9806885",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H10",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "a9de5c672809db97b856a71d979b1885dad325b713105d597affd4d9cc3f2d0d",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H10",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "154b83dd3ac55e6483e0a65dfdbb1234f5e6f93ed71bac12ba5832adff262702",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H11",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "1c26736b9fc2137dd4a4fd6b4df65ec9a7328fe221f5f53f0090650c6c67e491",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H11",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "1c26736b9fc2137dd4a4fd6b4df65ec9a7328fe221f5f53f0090650c6c67e491",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H11",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "1c26736b9fc2137dd4a4fd6b4df65ec9a7328fe221f5f53f0090650c6c67e491",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H12",
+      "run": 1,
+      "status": "partial_with_limit",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "e2aa5ae4ba93256361f094395dd0f4641ef7f1ab10e5f088ae0ae2bb24e204b4",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H12",
+      "run": 2,
+      "status": "partial_with_limit",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "e2aa5ae4ba93256361f094395dd0f4641ef7f1ab10e5f088ae0ae2bb24e204b4",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H12",
+      "run": 3,
+      "status": "partial_with_limit",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "e2aa5ae4ba93256361f094395dd0f4641ef7f1ab10e5f088ae0ae2bb24e204b4",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H13",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "bb534eb324b1bb9049af44ebbced69b4e841a3d39d76ab968530614d7c36acc5",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H13",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "bb534eb324b1bb9049af44ebbced69b4e841a3d39d76ab968530614d7c36acc5",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H13",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "bb534eb324b1bb9049af44ebbced69b4e841a3d39d76ab968530614d7c36acc5",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H14",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "39b28dc9ffb6a5d99338a54d10203cfb5c31c927cfdcbc1b7f4b2fbcc795b64b",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H14",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "39b28dc9ffb6a5d99338a54d10203cfb5c31c927cfdcbc1b7f4b2fbcc795b64b",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H14",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "39b28dc9ffb6a5d99338a54d10203cfb5c31c927cfdcbc1b7f4b2fbcc795b64b",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H15",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "8996ac21f03b887add2b344da7f3b8b7751353cba4574691d36a1b942dfa6f52",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H15",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "8996ac21f03b887add2b344da7f3b8b7751353cba4574691d36a1b942dfa6f52",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H15",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "8996ac21f03b887add2b344da7f3b8b7751353cba4574691d36a1b942dfa6f52",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H16",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "9a2ffd37c94b278799845ba312c072037155fa6e884698986176964395f977da",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H16",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "9a2ffd37c94b278799845ba312c072037155fa6e884698986176964395f977da",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H16",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "9a2ffd37c94b278799845ba312c072037155fa6e884698986176964395f977da",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H17",
+      "run": 1,
+      "status": "partial_with_limit",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "feb77a639a91f2b86fb3773779532beea48ae76a27a4623449c0ad0195b8610a",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H17",
+      "run": 2,
+      "status": "partial_with_limit",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "feb77a639a91f2b86fb3773779532beea48ae76a27a4623449c0ad0195b8610a",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H17",
+      "run": 3,
+      "status": "partial_with_limit",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "feb77a639a91f2b86fb3773779532beea48ae76a27a4623449c0ad0195b8610a",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H18",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "b2409136d85b253253ace9942644883909f9f524a41e055abfe7af4bdbd99cfd",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H18",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "b2409136d85b253253ace9942644883909f9f524a41e055abfe7af4bdbd99cfd",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H18",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "b2409136d85b253253ace9942644883909f9f524a41e055abfe7af4bdbd99cfd",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H19",
+      "run": 1,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "7d00b064665d4bb49fdbf15ce8ff85a4c0c6276d03bf7a49d1b3a213bbe3c044",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H19",
+      "run": 2,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "7d00b064665d4bb49fdbf15ce8ff85a4c0c6276d03bf7a49d1b3a213bbe3c044",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H19",
+      "run": 3,
+      "status": "source_reviewed_pass",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "7d00b064665d4bb49fdbf15ce8ff85a4c0c6276d03bf7a49d1b3a213bbe3c044",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H20",
+      "run": 1,
+      "status": "needs_question_clarification",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "17a639b7c53e55adc20c18fa48ab028086dcf4da6b2352b586c79e1766232b7f",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H20",
+      "run": 2,
+      "status": "needs_question_clarification",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "17a639b7c53e55adc20c18fa48ab028086dcf4da6b2352b586c79e1766232b7f",
+      "artifact": "followup_release_3runs.json"
+    },
+    {
+      "qid": "H20",
+      "run": 3,
+      "status": "needs_question_clarification",
+      "missing": [],
+      "unsupported_receipts": [],
+      "answer_sha256": "17a639b7c53e55adc20c18fa48ab028086dcf4da6b2352b586c79e1766232b7f",
+      "artifact": "followup_release_3runs.json"
+    }
+  ]
+}

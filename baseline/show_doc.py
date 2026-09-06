@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""청크 원문 열람 — 문항 작성용.
+"""청크 원문 열람 : 문항 작성용.
 
 BM25를 타지 않고 processed/chunks/<회사>.jsonl 을 직접 읽는다. 검색 품질과
 무관하게 "그 문서에 무엇이 적혀 있는가"를 그대로 보기 위한 도구다.
@@ -122,7 +122,7 @@ def show_by_rcept(rcept_no, chars):
     print_meta(rcept_no, meta, len(rows))
     for c in rows:
         print("\n[{}] {}".format(c["chunk_id"], c.get("section_path") or "(절 경로 없음)"))
-        print(clip(body(c.get("text", "")), chars) or "  (본문 없음 — 출처 헤더만)")
+        print(clip(body(c.get("text", "")), chars) or "  (본문 없음 : 출처 헤더만)")
     return rows
 
 
@@ -131,7 +131,7 @@ def show_grep(company, needle, chars, context):
     files = chunk_files(company)
     hits = [c for c in iter_chunks(files) if needle in (c.get("text") or "")]
     scope = company if company else "전체 회사"
-    print("{} 청크 중 '{}' 포함 — {}건 / 문서 {}개".format(
+    print("{} 청크 중 '{}' 포함 : {}건 / 문서 {}개".format(
         scope, needle, len(hits), len({c["rcept_no"] for c in hits})))
     if not hits:
         return hits
@@ -150,12 +150,12 @@ def show_grep(company, needle, chars, context):
             for w in windows(text, needle, context):
                 print("  … " + w + " …")
         else:
-            print(clip(text, chars) or "  (본문 없음 — 출처 헤더만)")
+            print(clip(text, chars) or "  (본문 없음 : 출처 헤더만)")
     return hits
 
 
 def main():
-    ap = argparse.ArgumentParser(description="청크 원문 열람 — 문항 작성용")
+    ap = argparse.ArgumentParser(description="청크 원문 열람 : 문항 작성용")
     ap.add_argument("rcept_no", nargs="?", help="접수번호 14자리")
     ap.add_argument("--company", help="회사명(부분일치)")
     ap.add_argument("--grep", help="청크 텍스트 부분일치 검색어")

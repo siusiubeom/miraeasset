@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """질문 → (retrieved_context, think_trace, answer) 파이프라인.
 
-- 생성 모델: HyperCLOVA X (CLOVA Studio) — 환경변수로 설정 시 사용.
+- 생성 모델: HyperCLOVA X (CLOVA Studio) : 환경변수로 설정 시 사용.
   CLOVA_API_KEY, CLOVA_ENDPOINT(전체 URL) 필수. 미설정 시 추출식 폴백으로 동작.
 - 규칙 반영: 근거 공시(공시명·공시일) 표시, 확인 불가 시 한계 고지,
   미래 예측·투자의견 금지, 지분공시 개인정보(생년월일·주소) 마스킹.
@@ -18,8 +18,13 @@ from evidence_tier import tier_label
 from retrieval import Retriever
 import struct_ops as SO
 from table_cells import parse_cells
+from form_blocks import extract_blocks
+from accounting_metrics import derive_margins
+from request_state import RequestState
+from kam_report import render as render_kam
+import disclosure_tools
 
-# .env 로드 (프로젝트 루트) — 이미 설정된 환경변수는 덮어쓰지 않음
+# .env 로드 (프로젝트 루트) : 이미 설정된 환경변수는 덮어쓰지 않음
 _env_file = Path(__file__).resolve().parents[1] / ".env"
 if _env_file.exists():
     for _line in _env_file.read_text(encoding="utf-8").splitlines():
@@ -48,7 +53,7 @@ _OPINION_RE = re.compile(
 # 질문 전체가 예측·투자의견은 아니지만 평가 한 줄을 곁들여 달라는 요구
 # ("이 정도면 괜찮은 수준인지 한 줄 평가도"). 통째로 거절하면 사실 부분까지
 # 버리므로, 사실만 답하고 평가 요구는 따로 고지한다.
-# "최대주주의 최대주주의 최대주주" — 지배구조를 2단계 이상 거슬러 오르는 질문.
+# "최대주주의 최대주주의 최대주주" : 지배구조를 2단계 이상 거슬러 오르는 질문.
 # 코퍼스는 70개사 각각의 공시만 보유하므로 상위 주주의 주주는 추적할 수 없다.
 # 막지 않으면 모델이 사슬을 지어낸다(H4: 없는 증여 사실을 날짜까지 붙여 생성).
 _OWNER_TERM_RE = re.compile(r"(최대주주|모회사|지배기업|지주회사)")
@@ -71,12 +76,12 @@ OPINION_PARTIAL_NOTE = (
     "\n\n※ 요청하신 수준 평가·의견은 제공하지 않습니다. 이 시스템은 공시에 기재된 "
     "사실만 근거로 답변하며, 적정성 판단은 공시 기재 사항이 아닙니다.")
 
-# 공시 서식의 항목명 — '예상·예정'이 들어가도 전망 표현이 아니다
+# 공시 서식의 항목명 : '예상·예정'이 들어가도 전망 표현이 아니다
 _FORM_TERM_RE = re.compile(
     r"취득\s?예상기간|보유\s?예상기간|처분\s?예상기간|취득\s?예정주식|취득\s?예정금액|"
     r"처분\s?예정주식|처분\s?예정금액|예정\s?주식수|예상\s?기간|예정일")
 
-# 평가 어휘 — SYSTEM_PROMPT §6이 금지한 표현의 코드 쪽 목록
+# 평가 어휘 : SYSTEM_PROMPT §6이 금지한 표현의 코드 쪽 목록
 _EVAL_WORD_RE = re.compile(
     r"긍정적|부정적|바람직|우수한|양호한|미흡한|충분한\s?수준|괜찮은\s?수준|"
     r"높은\s?편|낮은\s?편|매력적|유망|모멘텀|저평가|고평가|해석될\s?수\s?있")
@@ -103,7 +108,7 @@ def get_retriever() -> Retriever:
     return _retriever
 
 
-# ── 개인정보 마스킹 (지분공시: 생년월일·주소가 표에 그대로 노출됨) ─────────────
+# 개인정보 마스킹 (지분공시: 생년월일·주소가 표에 그대로 노출됨)
 _PII_ROW = re.compile(r"^(\|[^|\n]*(생년월일|주민등록|주소)[^|\n]*)(\|.*)$", re.M)
 _BIRTH6 = re.compile(r"\b\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])\b")
 
@@ -125,20 +130,18 @@ def src_label(rec) -> str:
             f" | 접수번호 {rec['rcept_no']} | {rec['section_path'] or rec['subtype']}{corr}")
 
 
-# ── HyperCLOVA X 클라이언트 (선택) ────────────────────────────────────────────
+# HyperCLOVA X 클라이언트 (선택)
 def clova_available() -> bool:
     return bool(os.environ.get("CLOVA_API_KEY"))
 
 SYSTEM_PROMPT = """당신은 금융감독원 전자공시(DART) 원문만을 근거로 답하는 공시 분석 시스템이다.
 
-## 0. 한 줄 기준
+## 0. 작성 기준
 
-가장 쉽게 온 문장이 가장 약한 문장이다. "관련 공시를 검토하였다", "종합적으로
-판단하였다": 어느 회사, 어느 질문에나 붙는 문장은 아무것도 판단하지 않은 문장이다.
-그 자리에 와야 하는 것은 이 회사, 이 공시, 이 숫자에만 성립하는 문장이다.
-아무 저항 없이 쓰인 문장을 발견하면, 지우고 구체로 내려가라.
+판단에는 해당 회사와 공시에서 확인한 수치, 항목, 점검 결과를 구체적으로 쓴다.
+"관련 공시를 검토하였다", "종합적으로 판단하였다"처럼 결과가 없는 문장은 생략한다.
 
-## 1. 출력 형식 — 반드시 아래 두 구획으로만 출력한다
+## 1. 출력 형식 : 반드시 아래 두 구획으로만 출력한다
 
 [판단]
 소제목: (12자 내외, 무엇을 판단했는지 지목하는 한 구절)
@@ -166,13 +169,13 @@ JSON, 다른 텍스트를 붙이지 않는다.
 
 일반적인 회계 지식으로 원인을 설명하지 마라. 근거에 적힌 원인만 쓴다.
 
-## 2. [판단] 구획 — 산문 1~2단락
+## 2. [판단] 구획 : 산문 1~2단락
 
 첫 줄은 반드시 "소제목: "으로 시작하는 한 구절이다. 그 회사 그 공시에만 붙는
 구절이어야 한다.
   좋음: "11월 결정분의 정정 체인 말단 선택" / "금융투자업 계정 매핑"
   나쁨: "자기주식 관련 판단" / "공시 검토 결과" (어느 질문에나 붙는다)
-소제목 다음 줄부터 산문을 시작한다. (감사기준 701 문단 11 — 소제목 누락은
+소제목 다음 줄부터 산문을 시작한다. (감사기준 701 문단 11 : 소제목 누락은
 금감원 기재실태 점검의 미흡 사례다.)
 
 태그·번호·불릿 금지. "먼저 생각해보면", "~인 것 같다" 같은 사고 중계 금지.
@@ -183,11 +186,11 @@ JSON, 다른 텍스트를 붙이지 않는다.
     "질문에 시점이 없어 최신 접수본(YYYY-MM-DD) 기준으로 답한다"를 명시한다.
     지분율·주식 수·임원 현황처럼 시점에 따라 값이 달라지는 항목은 이 선언 없이
     답하지 않는다.
-(b) 연 공시 — 보고서명·접수일·접수번호·절/주석. 조회 실패와 전환 경로 포함.
+(b) 연 공시 : 보고서명·접수일·접수번호·절/주석. 조회 실패와 전환 경로 포함.
 (c) 예외 점검의 결과. 정정본 유무(있으면 최종본 선택 근거), 비교 시 기준·기간 일치,
     개인정보 제외, 실체 변동(합병·분할·상장).
 (d) 기각한 값·경로와 그 이유.
-(e) 판정 — [답변]의 직답과 일치해야 한다.
+(e) 판정 : [답변]의 직답과 일치해야 한다.
 
 각 항목은 "~했다"가 아니라 "~한 결과 ~였다"로 끝난다. 절차의 나열과 판단의
 기록을 가르는 것은 결과의 서술이다. "정정본을 확인했다"가 아니라 "확인한 결과
@@ -204,7 +207,7 @@ JSON, 다른 텍스트를 붙이지 않는다.
    예) "7-31 정정의 사유는 계약상대의 공개 동의였다"
 ③ 유의적 판단이 필요했던 특정 변수
    예) "취득 예정 금액이며 실제 취득 완료액이 아니다"
-④ 공시 제출자가 그 판단을 내린 과정 — 서식 어느 항목에 무엇을 왜 기재했는가
+④ 공시 제출자가 그 판단을 내린 과정 : 서식 어느 항목에 무엇을 왜 기재했는가
    예) "처분목적란에 '임직원 상여 지급'으로 기재되어 있다"
 
 ④는 시스템이 아니라 제출자의 판단을 서술하는 자리다. 공시 서식의 사유·목적·근거
@@ -212,10 +215,11 @@ JSON, 다른 텍스트를 붙이지 않는다.
 
 ### 2-2. 기각 서술 (필수)
 
-살아있는 판단에는 버린 경로가 있다. 버린 것이 하나도 없는 trace는 답을 정해 놓고
-꾸민 글로 읽힌다. 입력의 「판정 이력」에 실제로 기각된 것이 있으면 반드시 그것을
-쓴다. 없으면 지어내지 말고 점검했으나 걸린 것이 없었다는 사실을 한 마디로 남긴다
-("이 보고서에 정정본은 없다").
+입력의 「판정 이력」에 실제 기각·전환이 있으면 그 결과를 쓴다. 검색 감점은
+제외나 값의 기각이 아니다. 기록이 없으면 기각 사례를 만들지 않는다.
+정정 체인 미로딩·매칭 실패와 조회 범위 내 정정 링크 미발견을 구분한다.
+점검하지 않은 항목을 확인했다고 쓰지 않는다. [판단]은 확인 가능한 근거와
+처리 결과의 요약이며 내부 사고 과정을 중계하는 구획이 아니다.
 
 ## 3. [답변] 구획
 
@@ -228,7 +232,7 @@ JSON, 다른 텍스트를 붙이지 않는다.
     공시 서식상 "최대주주 지분율"은 합산 기준이 관례이므로 직답은 합산 값으로 하고
     단독 지분율을 함께 적는다. 인용한 표의 보고서·접수번호는 [판단]과 [답변]에서
     같은 것이어야 한다.
-(4) 유의 1문장(해당 시): 회계 구조의 사실만 — 업종 특성, 실체 변동, 결정액/집행액
+(4) 유의 1문장(해당 시): 회계 구조의 사실만 : 업종 특성, 실체 변동, 결정액/집행액
     구분. 평가와 전망은 유의 사항이 아니다.
 
 ## 4. 질문 유형별 [판단] 길이
@@ -237,15 +241,15 @@ JSON, 다른 텍스트를 붙이지 않는다.
 짧고 수치가 많으며 정형구가 적다. 분량을 늘리는 방향으로 밀도를 만들 수 없다.
 [판단]은 어떤 유형이든 6문장을 넘지 않는다.
 
-[T1] 단순 조회 — 2~3문장. 짧은 것과 빈 것은 다르다. 점검이 필요 없었던 게
+[T1] 단순 조회 : 2~3문장. 짧은 것과 빈 것은 다르다. 점검이 필요 없었던 게
      아니라 점검했더니 없었음을 쓴다.
-[T2] 단일 문서 정리 — 첫 문장에서 범위를 선언한다.
-[T3] 비교·연산 — 동일 기준·기간·계정임을 확인한 결과를 쓴다. 기준을 바꾸면
+[T2] 단일 문서 정리 : 첫 문장에서 범위를 선언한다.
+[T3] 비교·연산 : 동일 기준·기간·계정임을 확인한 결과를 쓴다. 기준을 바꾸면
      결과가 뒤집히는 경우 그 사실 자체가 유의 사항이다. 적자가 낀 구간은
      증감률을 계산하지 않는다 (적자지속/적자전환/흑자전환).
-[T5] 복합·이력 — 시간순으로(원공시 → 정정 → 후속). 정정본이 여럿이면 체인
-     말단이 최종본, 동일자 다중 정정은 접수번호 최후순위 — 선택 근거를 쓴다.
-[T6] 경계 — 거절할 때 왜 없는지를 특정한다.
+[T5] 복합·이력 : 시간순으로(원공시 → 정정 → 후속). 정정본이 여럿이면 체인
+     말단이 최종본, 동일자 다중 정정은 접수번호 최후순위 : 선택 근거를 쓴다.
+[T6] 경계 : 거절할 때 왜 없는지를 특정한다.
      폐기됨    정정으로 대체되어 채택하지 않았다
      범위 밖   대상 70개사에 포함되지 않는다
      기간 밖   수집 범위를 벗어난다
@@ -295,7 +299,7 @@ JSON, 다른 텍스트를 붙이지 않는다.
 
 ## 8. 예시
 
-### 예시 1 — T5 정정 체인 (실측: 삼성전자 자기주식)
+### 예시 1 : T5 정정 체인 (실측: 삼성전자 자기주식)
 
 Q: 삼성전자의 2024년 11월 자기주식 취득 결정 금액은?
 
@@ -316,7 +320,7 @@ Q: 삼성전자의 2024년 11월 자기주식 취득 결정 금액은?
 ※ 본 수치는 2024-11-18 기재정정 반영값입니다.
 ※ 이사회 결의 시점의 취득 예정 금액이며, 실제 취득 완료 금액과는 다를 수 있습니다.
 
-### 예시 3 — 표에서 값과 원인을 함께 꺼내기
+### 예시 3 : 표에서 값과 원인을 함께 꺼내기
 
 Q: 삼성전자의 발행주식 액면총액과 납입자본금이 다른 이유는?
 
@@ -375,23 +379,22 @@ REEXTRACT_INSTRUCT = (
 MAXTOK_EXTRACT = 512    # 값 몇 줄이면 충분
 MAXTOK_ANSWER = 3072    # [판단] 산문 + [답변] (1536은 잘림 발생)
 
-# ── 429/5xx 재시도 ───────────────────────────────────────────────────────────
+# 429/5xx 재시도
 # 평가는 순차 호출이지만 순차 = 연달아 온다는 뜻이라 TPM 한도에 그대로 걸린다.
 # 실패 시 즉시 폴백하면 200이 나가고 주최측 재시도(5xx·타임아웃 대상)는 발동하지
 # 않으므로, 조용히 추출식 답변이 채점된다. 여기서 흡수해야 한다.
-RETRY_BACKOFF = (20, 40, 80)          # 초 — 최대 3회
+RETRY_BACKOFF = (20, 40, 80)          # 초 : 최대 3회
 RETRY_CODES = {429, 500, 502, 503, 504}
 BUDGET_SEC = 240                      # server.py GUARD_SEC(285) 안쪽
 
 # 요청 단위 상태. answer_question 진입 시각을 기준점으로 잡는다.
-# 평가 서버는 요청을 순차 처리하므로 모듈 전역으로 충분하다.
-_REQ = {"t0": None, "trace": None, "calls": [], "counted": None,
-        "opinion_part": False, "owner_hops": 0, "tier_demoted": [],
-        "section_route": [], "hit_tiers": []}
+# ContextVar를 요청 진입 때 초기화해 이전 작업의 상태와 분리한다.
+_REQ = RequestState()
 
 
 def begin_request(trace=None):
-    """요청 시작 — 예산 기준 시각과 계측 버퍼를 초기화한다."""
+    """요청 시작 : 예산 기준 시각과 계측 버퍼를 초기화한다."""
+    _REQ.reset()
     _REQ["t0"] = time.time()
     _REQ["trace"] = trace
     _REQ["calls"] = []
@@ -401,16 +404,21 @@ def begin_request(trace=None):
     _REQ["tier_demoted"] = []
     _REQ["section_route"] = []
     _REQ["hit_tiers"] = []
+    _REQ["evidence_hits"] = []
+    _REQ["judgment_lines"] = []
+    _REQ["chain_loaded"] = False
+    _REQ["struct_evidence"] = []
+    _REQ["audit_context"] = ""
 
 
 def _budget_left() -> float:
-    if _REQ["t0"] is None:
+    if _REQ.get("t0") is None:
         return float(BUDGET_SEC)
     return BUDGET_SEC - (time.time() - _REQ["t0"])
 
 
 def _note(msg: str):
-    if _REQ["trace"] is not None:
+    if _REQ.get("trace") is not None:
         _REQ["trace"].append(msg)
 
 
@@ -427,7 +435,7 @@ def est_tokens(text: str) -> int:
 
 def call_stats():
     """이번 요청의 호출별 (라벨, input 추정, maxTokens) 목록과 TPM 합계."""
-    calls = _REQ["calls"]
+    calls = _REQ.get("calls", [])
     return {"n_calls": len(calls), "calls": calls,
             "params": calls[0]["params"] if calls else {},
             "tpm_cost": sum(c["input_est"] + c["max_tokens"] for c in calls)}
@@ -468,7 +476,7 @@ def call_clova_raw(system: str, user: str, max_tokens: int = None, label: str = 
 
     input_est = est_tokens(system) + est_tokens(user)
     # 무엇으로 돌린 결과인지 나중에 추적할 수 있어야 한다.
-    _REQ["calls"].append({"label": label, "input_est": input_est,
+    _REQ.setdefault("calls", []).append({"label": label, "input_est": input_est,
                           "max_tokens": max_tokens, "params": params})
     # 계측은 항상 call_stats()로 집계 가능하지만, 채점 대상인 think_trace를
     # 토큰 로그로 오염시키지 않도록 trace 기록은 환경변수로 켠다.
@@ -504,9 +512,9 @@ def call_clova_raw(system: str, user: str, max_tokens: int = None, label: str = 
                 except ValueError:
                     pass
             if wait >= _budget_left():
-                _note(f"[재시도-중단] CLOVA {e.code} — 잔여 예산 {max(0, _budget_left()):.0f}s < 대기 {wait}s")
+                _note(f"[재시도-중단] CLOVA {e.code} : 잔여 예산 {max(0, _budget_left()):.0f}s < 대기 {wait}s")
                 break
-            _note(f"[재시도] CLOVA {e.code} — {attempt + 1}회차 {wait}s 대기")
+            _note(f"[재시도] CLOVA {e.code} : {attempt + 1}회차 {wait}s 대기")
             time.sleep(wait)
         except urllib.error.URLError:
             # 네트워크·타임아웃도 재시도 대상. 5xx를 밖으로 내보내지 않기 위해
@@ -515,9 +523,9 @@ def call_clova_raw(system: str, user: str, max_tokens: int = None, label: str = 
                 raise
             wait = RETRY_BACKOFF[attempt]
             if wait >= _budget_left():
-                _note(f"[재시도-중단] CLOVA 네트워크 오류 — 잔여 예산 부족")
+                _note(f"[재시도-중단] CLOVA 네트워크 오류 : 잔여 예산 부족")
                 raise
-            _note(f"[재시도] CLOVA 네트워크 오류 — {attempt + 1}회차 {wait}s 대기")
+            _note(f"[재시도] CLOVA 네트워크 오류 : {attempt + 1}회차 {wait}s 대기")
             time.sleep(wait)
     _note(f"[재시도-실패] CLOVA {last_code} {attempt}회 재시도 후 폴백")
     raise RuntimeError(f"CLOVA HTTP {last_code} after {attempt} retries")
@@ -578,7 +586,7 @@ def _clean_output(text: str) -> str:
     return t.strip().strip('"').strip()
 
 
-# [판단] 첫 줄의 소제목 — 프롬프트만으로는 0/13이라 출력 형식에 라벨을 두고
+# [판단] 첫 줄의 소제목 : 프롬프트만으로는 0/13이라 출력 형식에 라벨을 두고
 # 파싱에서 라벨을 떼어낸다. 재요청은 하지 않는다(호출 수가 곧 429 위험이다).
 _SUBTITLE_RE = re.compile(r"^\s*(?:소제목|소\s?제목)\s*[:：]\s*(.+)$", re.M)
 
@@ -597,7 +605,7 @@ def check_subtitle(model_trace: str, trace):
     """소제목 유무를 로그로 남기고 라벨을 정리한 trace를 돌려준다."""
     sub, cleaned = split_subtitle(model_trace)
     if not sub:
-        trace.append("[5!] 소제목 없음 — [판단] 첫 줄이 지목 구절이 아니다")
+        trace.append("[5!] 소제목 없음 : [판단] 첫 줄이 지목 구절이 아니다")
     return cleaned
 
 
@@ -645,18 +653,18 @@ def strip_opinion_sentences(answer: str, trace=None):
 
 
 def truncated(answer: str) -> bool:
-    """구분자 없이 문장이 미완인 채로 끝났는지 — maxTokens 잘림 추정."""
+    """구분자 없이 문장이 미완인 채로 끝났는지 : maxTokens 잘림 추정."""
     a = (answer or "").rstrip()
     return bool(a) and a[-1] not in ".!?)」』\"'…다요음함%"
 
 
-# 답변에 남은 내부 절 이름 언급 — "(코드 계산 결과 참조)" 같은 꼬리표
+# 답변에 남은 내부 절 이름 언급 : "(코드 계산 결과 참조)" 같은 꼬리표
 _LEAK_TAIL_RE = re.compile(
     r"[(\[]?\s*(?:코드 계산 결과|판정 이력|출처 절|근거 발췌|연도 열 판정)\s*"
     r"(?:참조|참고|에 따름)?\s*[)\]]?")
 
 
-# 값이 채워지지 않은 채 남은 템플릿 — "※ 본 수치는입니다.", "(출처: )"
+# 값이 채워지지 않은 채 남은 템플릿 : "※ 본 수치는입니다.", "(출처: )"
 _EMPTY_TEMPLATE_RES = (
     re.compile(r"※\s*본\s*수치는\s*(?:입니다|반영값입니다)[.。]?\s*"),
     re.compile(r"\(\s*출처\s*:\s*\)\s*"),
@@ -682,12 +690,12 @@ def strip_leaked_labels(answer: str) -> str:
 
 
 def leaked_structure(answer: str):
-    """답변이 입력 절 제목을 언급했는지 — 내부 구조 노출 탐지."""
+    """답변이 입력 절 제목을 언급했는지 : 내부 구조 노출 탐지."""
     return [w for w in _SECTION_WORDS if w in (answer or "")]
 
 
 def tier_rejection_lines(hits):
-    """증거 위계에서 무엇을 채택하고 무엇을 제외했는지 — 기각 서술의 재료.
+    """증거 위계에서 무엇을 채택하고 무엇을 제외했는지 : 기각 서술의 재료.
 
     지금까지 기각 서술의 재료가 정정 체인 하나뿐이라 기각 서술 비율이 23%에
     머물렀다. 같은 지표에 표와 서술형 어림수가 함께 검색되면 그 선택 자체가
@@ -715,14 +723,14 @@ def tier_rejection_lines(hits):
     low_where = ", ".join(dict.fromkeys(
         (r.get("section_path") or r.get("report_nm") or "").split(" > ")[-1] for r in low))[:80]
     low_tier = min((r.get("evidence_tier") or 5) for r in low)
-    return [f"- {top_where}({tier_label(best)}, tier {best})의 기재값을 채택하고, "
-            f"{low_where}({tier_label(low_tier)}, tier {low_tier})의 어림수 서술은 "
-            f"근거에서 제외했다 — 같은 지표라도 정형 표의 기재값이 서술형 어림수보다 "
-            f"신뢰성이 높다(감사기준서 500)"]
+    return [f"- 검색 상위 근거는 {top_where}({tier_label(best)}, tier {best})이며, "
+            f"{low_where}({tier_label(low_tier)}, tier {low_tier})도 후보에 있었다. "
+            "등급과 검색 순위는 기록하되, 이것만으로 동일 지표의 값이거나 "
+            "실제로 기각된 값이라고 판정하지 않는다."]
 
 
 def build_judgment_log(hits, trace) -> str:
-    """모델에게 넘길 「판정 이력」 절 — 기각 서술의 재료.
+    """모델에게 넘길 「판정 이력」 절 : 기각 서술의 재료.
 
     코드가 실제로 감지·기각한 것을 모델에게 넘기지 않으면 모델은 그 사실을
     모르고, 모르는 것을 쓰라고 하면 지어낸다.
@@ -739,21 +747,35 @@ def build_judgment_log(hits, trace) -> str:
             continue
         seen.add(no)
         if rec.get("superseded_by"):
-            lines.append(f"- 접수번호 {no}는 {', '.join(rec['superseded_by'])}로 "
-                         f"정정 대체됨 — 폐기된 값이므로 근거에서 제외했다")
+            lines.append(f"- 접수번호 {no}의 후속 정정 링크: {', '.join(rec['superseded_by'])}. "
+                         "검색 감점이 적용되었으나 검색 근거에는 남아 있다. 최종본으로 단정하지 않는다.")
         if rec.get("supersedes"):
+            status = ("후속 정정 링크도 있어 중간 정정본이다" if rec.get("superseded_by")
+                      else "로딩된 체인에서 후속 정정 링크가 발견되지 않았다")
             lines.append(f"- 접수번호 {no}는 {', '.join(rec['supersedes'])}를 정정한 "
-                         f"정정본이다 — 정정 체인의 말단이므로 이 문서의 값을 채택했다")
+                         f"정정본이며, {status}.")
     for t in trace:
         if t.startswith("[4!]") or t.startswith("[검산]"):
             lines.append(f"- {t[t.index(']') + 1:].strip()}")
-    if not lines:
-        return "\n\n### 판정 이력\n- 정정본 없음. 예외 점검에서 걸린 항목 없음."
-    return ("\n\n### 판정 이력 (시스템이 실제로 기각·전환한 것 — trace에 반드시 반영)\n"
-            + "\n".join(lines))
+    if not _REQ.get("chain_loaded"):
+        lines.append("- 정정 체인 데이터 미로딩 또는 유효 링크 미확인으로 정정 유무를 확정할 수 없다.")
+    elif not any(r.get("superseded_by") or r.get("supersedes") for r, _ in hits):
+        lines.append("- 조회 문서에서 매칭된 정정 링크를 발견하지 못했다. 코퍼스 밖 정정이나 매칭 실패는 배제하지 못한다.")
+    _REQ["evidence_hits"] = list(hits)
+    _REQ["judgment_lines"] = list(lines)
+    for line in lines:
+        event = "[판정근거] " + line.removeprefix("- ")
+        if event not in trace:
+            trace.append(event)
+    blocks = extract_blocks(hits) if os.environ.get("USE_FORM_BLOCKS", "1") != "0" else ""
+    if blocks:
+        trace.append("[서식근거] 검색 근거의 산출근거·한도·열거 블록을 원문 그대로 전달")
+    return ("\n\n### 판정 이력 (실제로 관측한 처리 결과와 확인 한계)\n"
+            + "\n".join(lines)
+            + ("\n\n### 공시 서식 근거 원문\n" + blocks if blocks else ""))
 
 
-# 보고서 기간 표기 — "사업보고서 (2025.12)"
+# 보고서 기간 표기 : "사업보고서 (2025.12)"
 _REPORT_PERIOD_RE = re.compile(r"20\d\d\.\d{2}")
 
 
@@ -770,13 +792,52 @@ def source_mismatch(model_trace: str, answer: str):
     return None
 
 
-def merge_trace(model_trace: str, trace) -> str:
-    """모델 산문 trace + 코드 로그 병기.
+def observed_kam(hits, trace):
+    """모델이 근거 식별자를 누락한 경우 실제 조회·연산 기록으로 짧은 요약을 만든다."""
+    docs = list({r["rcept_no"]: r for r, _ in hits}.values())
+    if not docs:
+        return ""
+    first = docs[0]
+    subject = (first.get("section_path") or first.get("report_nm") or "공시").split(" > ")[-1]
+    title = f"{first.get('corp', '')} {subject}"[:24]
+    source = "; ".join(f"{r['report_nm']} (접수번호 {r['rcept_no']}, 접수일 {r['rcept_dt']})"
+                       for r in docs[:2])
+    lines = [f"조회 결과 {len(docs)}개 문서가 근거에 포함되었으며, {source}에서 공시 기재사항을 확인했다."]
+    corrections = [line.removeprefix("- ") for line in (_REQ.get("judgment_lines") or [])
+                   if "정정" in line]
+    lines.extend(corrections[:2])
+    calculations = [line.removeprefix("[4S+] ") for line in trace if line.startswith("[4S+] ")]
+    if calculations:
+        # 긴 연산 목록은 시스템 로그와 산출 내역에 있고 여기서는 결과 한 건만 제시한다.
+        lines.append(f"표 구조에 따라 산출한 결과는 {calculations[-1]}이다.")
+    else:
+        lines.append("이 요약은 조회된 근거와 기록된 점검 결과의 범위로 한정했다.")
+    return title + "\n" + "\n".join(lines)
 
-    코드 로그에는 모델이 지어낼 수 없는 사실(검색 점수, 실제 감지된 접수번호)이
-    들어 있고, 채점자가 대조할 수 있는 유일한 기록이다. think_trace 형식 규정이
-    없으므로(운영진 8/11 답변) 산문 + 로그 병기가 허용된다.
-    """
+
+def merge_trace(model_trace: str, trace) -> str:
+    """판단 요약의 출처와 정정 모순을 검사하고 실행 로그를 붙인다."""
+    if os.environ.get("USE_KAM_VALIDATION", "1") != "0" and model_trace:
+        hits = _REQ.get("evidence_hits") or []
+        evidence = (build_context(hits) if hits else "") + (_REQ.get("audit_context") or "")
+        events = "\n".join(_REQ.get("judgment_lines") or [])
+        known = set(_RCEPT_RE.findall(evidence + events))
+        unknown = set(_RCEPT_RE.findall(model_trace)) - known
+        contradicted = correction_contradiction(model_trace, hits)
+        # 감지된 출처 환각·정정 모순은 사용자에게 전달하지 않는다.
+        if unknown or contradicted:
+            trace.append("[KAM-차단] 근거에 없는 접수번호 또는 정정 모순으로 판단 요약을 관측 기록으로 대체")
+            names = list(dict.fromkeys(r.get("corp", "") for r, _ in hits))
+            model_trace = (" / ".join(names) + " 공시 근거 확인\n"
+                           + "생성된 판단 요약에서 근거와 대조되지 않는 출처 또는 정정 설명이 발견되어 해당 요약을 제외했다.\n"
+                           + "\n".join(line.removeprefix("- ") for line in (_REQ.get("judgment_lines") or [])[:4]))
+        elif hits and not _RCEPT_RE.search(model_trace):
+            # 프롬프트를 반복해도 실제 출처가 없는 산문은 남는다. 모델 재호출 없이
+            # 기각을 지어내지 않는 관측 요약으로 전환한다.
+            model_trace = observed_kam(hits, trace)
+            trace.append("[KAM-전환] 판단 산문에 접수번호 누락 : 실제 조회·정정·연산 기록으로 요약")
+    if os.environ.get("USE_STRUCTURED_KAM", "1") != "0":
+        model_trace = render_kam(_REQ, trace)
     if not model_trace:
         return "\n".join(trace)
     return model_trace + "\n\n---\n[시스템 로그]\n" + "\n".join(trace)
@@ -786,7 +847,7 @@ def call_clova(question: str, context: str) -> str:
     return call_clova_raw(SYSTEM_PROMPT, f"[근거]\n{context}\n\n[질문]\n{question}")
 
 
-# ── 다중 회사 질의 분해 ───────────────────────────────────────────────────────
+# 다중 회사 질의 분해
 def strip_other_companies(question: str, keep: str, companies, name_map) -> str:
     """질문에서 다른 회사명(별칭 포함)을 제거해 회사별 서브질의를 만든다."""
     others = {c for c in companies if c != keep}
@@ -809,11 +870,11 @@ def build_context(hits, start_i=1):
 _UNIT_WON = {"조원": Decimal("1e12"), "억원": Decimal("1e8"), "백만원": Decimal("1e6"),
              "천원": Decimal("1e3"), "원": Decimal(1)}
 _VALUE_RE = re.compile(r"([\d,]+(?:\.\d+)?)\s*(조\s?원|억\s?원|백만\s?원|천\s?원|원)")
-# "2조 8,119억원" — 조 단위 접두를 놓치면 값이 통째로 어긋난다(H7)
+# "2조 8,119억원" : 조 단위 접두를 놓치면 값이 통째로 어긋난다(H7)
 _COMPOSITE_RE = re.compile(r"([\d,]+)\s*조\s*([\d,]+)\s*억\s?원?")
-# 단위가 빠진 값 ("값: 24,858,075") — 표 선언 단위로 보충한다(H2)
+# 단위가 빠진 값 ("값: 24,858,075") : 표 선언 단위로 보충한다(H2)
 _BARE_NUM_RE = re.compile(r"(?<![\d,])(\d{1,3}(?:,\d{3})+|\d{4,})(?![\d,])")
-# 음수 표기 — 재무제표는 △ 또는 괄호를 쓴다(H6의 2023년 별도 영업이익 △11,526,297)
+# 음수 표기 : 재무제표는 △ 또는 괄호를 쓴다(H6의 2023년 별도 영업이익 △11,526,297)
 _NEG_MARK_RE = re.compile(r"[△▲]\s*[\d(]|\(\s*[\d,]+\s*\)\s*(?:백만|억|조|천)?원?|-\s?[\d,]{4,}")
 _TRILLION = Decimal("1e12")
 _HUNDRED_MILLION = Decimal("1e8")
@@ -823,7 +884,7 @@ _BIGNUM_RE = re.compile(r"\d[\d,]{6,}")
 
 MIN_SIGNIFICANT_DIGITS = 4
 # 출처 필드의 접수번호 (DART 접수번호는 14자리)
-_RCEPT_RE = re.compile(r"\b\d{14}\b")
+_RCEPT_RE = re.compile(r"(?<!\d)\d{14}(?!\d)")
 
 
 def _to_won(m) -> Decimal:
@@ -845,7 +906,7 @@ def _parse_line(line: str, context: str = ""):
 
     세 가지를 함께 본다.
     - "2조 8,119억원" 같은 복합 표기 (억 단위만 잡히면 값이 1/4로 줄어든다)
-    - 단위가 빠진 값 ("값: 24,858,075") — 컨텍스트의 표 선언 단위로 보충한다
+    - 단위가 빠진 값 ("값: 24,858,075") : 컨텍스트의 표 선언 단위로 보충한다
     - 음수 표기 (△, -, 괄호)
     """
     sign = Decimal(-1) if _NEG_MARK_RE.search(line) else Decimal(1)
@@ -868,7 +929,7 @@ def _parse_line(line: str, context: str = ""):
         except InvalidOperation:
             return None, "none"
 
-    # 단위 없는 값 — 그 숫자가 실린 표의 선언 단위를 신뢰한다.
+    # 단위 없는 값 : 그 숫자가 실린 표의 선언 단위를 신뢰한다.
     mb = _BARE_NUM_RE.search(line)
     if mb and context:
         unit = unit_for_number(context, mb.group(1))
@@ -902,7 +963,7 @@ def context_number_set(context: str):
 def grounded_extract(extract: str, context: str, trace=None, extra_nums=()):
     """근거에 없는 수치가 든 '값:' 줄을 걷어낸 추출 결과.
 
-    모델이 분모를 지어내면(E1: 56,156,654 — 컨텍스트에 없다) 코드 계산이 그
+    모델이 분모를 지어내면(E1: 56,156,654 : 컨텍스트에 없다) 코드 계산이 그
     지어낸 값을 그대로 신뢰한다. 계산에 들어가기 전에 입력 쪽에서 막는다.
     접수번호(14자리)·접수일(8자리)은 수치가 아니라 출처 표기이므로 제외한다.
     """
@@ -934,7 +995,7 @@ def grounded_extract(extract: str, context: str, trace=None, extra_nums=()):
     if dropped and trace is not None:
         for ln, bad, n_good in dropped:
             trace.append(f"[4!] 근거에 없는 추출값 제외: {', '.join(bad)}"
-                         + (f" — 같은 줄의 근거 있는 항목 {n_good}건은 보존" if n_good else "")
+                         + (f" : 같은 줄의 근거 있는 항목 {n_good}건은 보존" if n_good else "")
                          + f" ({ln})")
     return "\n".join(keep)
 
@@ -945,7 +1006,7 @@ def parse_krw_all(extract: str, context: str = ""):
             if (v := _parse_line(line, context)[0]) is not None]
 
 
-# 주식 수 — 금액과 단위 체계가 달라 별도 파서로 분리한다. 섞으면 원 단위 환산이
+# 주식 수 : 금액과 단위 체계가 달라 별도 파서로 분리한다. 섞으면 원 단위 환산이
 # 주식 수에 적용된다(E1: 50,144,628주가 금액 파서에 안 걸려 값 0개가 됐다).
 _SHARE_RE = re.compile(r"([\d,]+)\s*주(?![가-힣])")
 
@@ -985,7 +1046,7 @@ COMBO_MAX_TERMS = 3
 
 
 def combo_values(values, max_terms=COMBO_MAX_TERMS):
-    """추출값들의 2~max_terms개 조합 합과 두 값의 차 — 검증 허용 목록용."""
+    """추출값들의 2~max_terms개 조합 합과 두 값의 차 : 검증 허용 목록용."""
     out = set()
     vals = [Decimal(v) for v in values]
     for n in range(2, min(max_terms, len(vals)) + 1):
@@ -1012,7 +1073,7 @@ def format_krw(v) -> str:
     return f"{v:,.0f}원"
 
 
-# 금액 상한 — 이 코퍼스에서 단일 항목이 1경원을 넘을 수 없다. 넘으면 추출 단계에서
+# 금액 상한 : 이 코퍼스에서 단일 항목이 1경원을 넘을 수 없다. 넘으면 추출 단계에서
 # 단위 라벨이 오염된 것으로 본다(백만원 표 값에 '억원' 라벨이 붙은 사례).
 MAX_PLAUSIBLE_KRW = Decimal("1e16")
 
@@ -1021,13 +1082,13 @@ RATIO_INSTRUCT = (
     "이 질문은 비율을 묻는다. 비율을 직접 계산하지 마라. 첫 줄에 분자에 해당하는 항목을 "
     "'값:' 줄로 출력한다. 전체(분모)가 표에 그대로 적혀 있으면 둘째 줄에 그 값을 옮긴다. "
     "표에 전체가 없으면 전체를 이루는 구성 항목을 표에 적힌 그대로 한 줄씩 모두 출력하라. "
-    "직접 더한 합계를 쓰지 마라 — 합산은 코드가 한다. "
+    "직접 더한 합계를 쓰지 마라 : 합산은 코드가 한다. "
     "같은 단위(금액이면 금액, 주식수면 주식수)로 맞춰 뽑아라.")
 
 # 비율 질문에서 값이 1개만 나왔을 때의 재추출 지시 (분자·분모 명시)
 RATIO_REEXTRACT_INSTRUCT = (
     "직전 추출에서 값이 하나만 나왔다. 비율을 계산하려면 분모가 필요하다. "
-    "분모를 직접 계산해서 쓰지 마라 — 발췌에 없는 합계를 지어내면 계산이 통째로 틀린다. "
+    "분모를 직접 계산해서 쓰지 마라 : 발췌에 없는 합계를 지어내면 계산이 통째로 틀린다. "
     "전체가 표에 적혀 있으면 그 값을, 적혀 있지 않으면 전체를 이루는 구성 항목(예: 보통주식과 "
     "기타주식)을 표에 적힌 숫자 그대로 '값:' 줄로 한 줄씩 모두 출력하라. 합산은 코드가 한다. "
     "발췌에서 구성 항목도 찾을 수 없으면 '값: 확인불가'로 표기하라.")
@@ -1047,12 +1108,12 @@ RATIO_BLOCK_MSG = (
 COUNT_QUESTION_RE = re.compile(r"몇\s?건|몇\s?개|건수|몇\s?차례")
 # 질문에서 접수일을 뽑는다
 _QDATE_RE = re.compile(r"(20\d\d)\s*년\s*(\d{1,2})\s*월\s*(\d{1,2})\s*일")
-# 공시 종류 키워드 — 건수 집계 시 report_nm 필터
+# 공시 종류 키워드 : 건수 집계 시 report_nm 필터
 _DOC_KEYWORDS = ("자기주식", "공급계약", "대량보유", "사업보고서", "분기보고서",
                  "반기보고서", "주요사항", "합병", "유상증자", "전환사채")
 
 
-# 청크 원문에 선언된 표 단위 — 재무제표 표에는 "(단위: 백만원)"으로 명시된다.
+# 청크 원문에 선언된 표 단위 : 재무제표 표에는 "(단위: 백만원)"으로 명시된다.
 _CTX_UNIT_RE = re.compile(r"단위\s*[:：]\s*(조\s?원|억\s?원|백만\s?원|천\s?원|원)")
 
 
@@ -1071,7 +1132,7 @@ def extract_units(extract: str):
     return out
 
 
-# 질문이 지목할 수 있는 재무 지표 — 표에서 바로 위아래 행과 헷갈리는 것들
+# 질문이 지목할 수 있는 재무 지표 : 표에서 바로 위아래 행과 헷갈리는 것들
 METRIC_WORDS = (
     "영업이익", "영업손실", "영업수익", "매출액", "매출총이익", "매출원가",
     "당기순이익", "분기순이익", "반기순이익", "순이익", "법인세비용차감전순이익",
@@ -1185,7 +1246,7 @@ _GI_RE = re.compile(r"제\s?(\d{1,3})\s?기")
 _Q_YEAR_RE = re.compile(r"(20\d\d)\s*년")
 
 
-# 보고서명의 기준 연월 — "사업보고서 (2025.12)"
+# 보고서명의 기준 연월 : "사업보고서 (2025.12)"
 _REPORT_BASE_RE = re.compile(r"\((20\d\d)\.\d{2}\)")
 
 
@@ -1260,11 +1321,11 @@ def count_disclosures(question: str, corp: str, ret):
     return sorted(seen.items())
 
 
-# 주식 종류별 행 — "| 1. 취득예정주식(주) | 1. 취득예정주식(주) | 보통주식 | 50,144,628 |"
+# 주식 종류별 행 : "| 1. 취득예정주식(주) | 1. 취득예정주식(주) | 보통주식 | 50,144,628 |"
 _SHARE_CLASS_ROW_RE = re.compile(
     r"\|\s*([^|\n]{2,30}?)\s*\|[^|\n]*\|\s*(보통주식|기타주식|우선주식)\s*\|\s*([\d,]{4,})\s*\|")
 SHARE_CLASS_LABELS = ("보통주식", "기타주식", "우선주식")
-# 표 행이 어떤 행위에 관한 것인지 — 질문과 표의 행위가 같아야 같은 비율이다
+# 표 행이 어떤 행위에 관한 것인지 : 질문과 표의 행위가 같아야 같은 비율이다
 SHARE_TABLE_ACTIONS = ("취득", "처분", "보유", "발행", "소각")
 
 
@@ -1348,7 +1409,7 @@ def cagr(series):
 
 
 def ratio_krw(numerator, denominator):
-    """비율(%) 계산 — Decimal 나눗셈, 소수 둘째 자리.
+    """비율(%) 계산 : Decimal 나눗셈, 소수 둘째 자리.
 
     모델에게 나눗셈을 맡기면 틀린다(보통주식 비중 89.42%를 95.05%로 응답).
     """
@@ -1372,9 +1433,9 @@ def convert_krw(v, unit: str) -> str:
 _ASK_UNIT_RE = re.compile(r"(조원|억원|백만원|천원)\s*단위|(조|억|백만|천)\s?원으로")
 # 비율·비중을 묻는 질문
 RATIO_QUESTION_RE = re.compile(r"퍼센트|%|비중|비율|몇\s?할|차지")
-# 합계를 묻는 질문 — 이 표현이 있을 때만 값들을 합산한다
+# 합계를 묻는 질문 : 이 표현이 있을 때만 값들을 합산한다
 SUM_QUESTION_RE = re.compile(r"합계|합쳐|총액|총\s?금액|더하|합산|모두\s?얼마|총\s?몇|합은")
-# 비교 질문 — 합산하면 안 된다
+# 비교 질문 : 합산하면 안 된다
 COMPARE_QUESTION_RE = re.compile(r"비교|대비|차이|어느\s?쪽|누가\s?더|보다\s?(큰|작|많|적)")
 
 
@@ -1394,11 +1455,11 @@ def asked_unit(question: str):
     return units[0] if units else None
 
 
-# 명시 표현 없이 합산 의도로 보는 조건 — 상수로 노출한다.
+# 명시 표현 없이 합산 의도로 보는 조건 : 상수로 노출한다.
 IMPLICIT_SUM_MAX_TERMS = 3                      # 동종 항목이 이 개수 이하로 복수일 때
 SINGLE_VALUE_QUESTION_RE = re.compile(          # 단일 값을 요구하는 질문
     r"금액|규모|얼마|가액|총\s?몇|수량")
-ITEMIZED_QUESTION_RE = re.compile(              # 항목별 개별 답 요구 — 합산 금지
+ITEMIZED_QUESTION_RE = re.compile(              # 항목별 개별 답 요구 : 합산 금지
     r"각각|항목별|개별|나눠|구분해|따로")
 
 
@@ -1409,7 +1470,7 @@ def same_source(extract: str) -> bool:
     return len(srcs) <= 1
 
 
-# 차액을 묻는 질문 — 합산과 대칭. E03에서 897,514 + 673,561을 더한 원인이다.
+# 차액을 묻는 질문 : 합산과 대칭. E03에서 897,514 + 673,561을 더한 원인이다.
 DIFF_QUESTION_RE = re.compile(r"차액|차이|초과|미달|얼마나\s?(?:큰|적은|많은|작은)|몇\s?배")
 
 
@@ -1459,7 +1520,7 @@ def verify_trace(answer: str, expected):
     return f"[검산] 불일치 감지: 코드값 {Decimal(expected):,.0f}, 답변값 {found}"
 
 
-# ── 호출 수 감축 휴리스틱 ────────────────────────────────────────────────────
+# 호출 수 감축 휴리스틱
 # 2단계(추출→코드계산→서술)는 자릿수 큰 산술 오답을 막지만 호출이 2배다.
 # TPM이 (input + maxTokens)로 계산되는 한 호출 수가 곧 429 위험이므로,
 # 코드 계산이 실제로 필요한 질문에만 2단계를 태운다.
@@ -1475,7 +1536,7 @@ TABLE_SECTION_RE = re.compile(
     r"손익계산서|재무상태표|현금흐름표|요약재무|자본변동표|재무제표|"
     r"자기주식\s?취득|취득\s?결정|처분\s?결정")
 
-# 표 형식 수치로 보는 패턴 — 쉼표 구분 7자리 이상 (예: 2,682,737,598,000)
+# 표 형식 수치로 보는 패턴 : 쉼표 구분 7자리 이상 (예: 2,682,737,598,000)
 TABLE_NUMBER_RE = re.compile(r"\d{1,3}(?:,\d{3}){2,}")
 
 
@@ -1521,7 +1582,7 @@ def _norm_num(tok: str) -> str:
 
 
 def unit_variants(v):
-    """계산값의 정당한 표기들 — 원·천원·백만원·억원·조원. 모두 같은 값이다.
+    """계산값의 정당한 표기들 : 원·천원·백만원·억원·조원. 모두 같은 값이다.
 
     차액을 원 단위로만 허용 목록에 넣어, 모델이 백만원으로 쓴 223,953이
     "근거에 없는 수치"로 차단됐다(E03).
@@ -1574,13 +1635,14 @@ def fix_answer_units(answer: str, context: str, trace):
     return out
 
 
-# 완전한 날짜 — "2026년 1월 2일" / "2026-01-02" / "2026.01.02"
+# 완전한 날짜 : "2026년 1월 2일" / "2026-01-02" / "2026.01.02"
 _FULL_DATE_RE = re.compile(
-    r"(20\d\d)\s*[.\-년]\s*(\d{1,2})\s*[.\-월]\s*(\d{1,2})\s*일?")
+    r"(?P<year>20\d\d)\s*[.\-년]\s*(?P<month>\d{1,2})\s*"
+    r"(?:(?P<kr>월)|[.\-])\s*(?P<day>\d{1,2})(?(kr)\s*일|(?!\d|,\d))")
 
 
 def _ymd(m) -> str:
-    return f"{m.group(1)}{int(m.group(2)):02d}{int(m.group(3)):02d}"
+    return f"{m['year']}{int(m['month']):02d}{int(m['day']):02d}"
 
 
 def use_anchor_check() -> bool:
@@ -1593,7 +1655,7 @@ ANCHOR_BLOCK_MSG = (
     "근거에 닿지 않는 서술은 답변에서 제외하고 있으며, 확인 가능한 항목을 지정해 "
     "주시면 그 범위에서 답변드리겠습니다.")
 
-# 코드가 만든 고정 문구 — 접지 검사의 예외. 이것까지 앵커로 재면
+# 코드가 만든 고정 문구 : 접지 검사의 예외. 이것까지 앵커로 재면
 # "추출값과 계산값이 불일치해…"가 미접지로 지워지고 답변이 통째로 비워진다.
 _SYSTEM_MESSAGES = (FALLBACK_OPINION, FALLBACK_NO_INFO, VERIFY_BLOCK_MSG,
                     RATIO_BLOCK_MSG, UNIT_BLOCK_MSG, ANCHOR_BLOCK_MSG)
@@ -1628,7 +1690,7 @@ def anchor_filter_answer(answer: str, anchors, trace, context=""):
     # (E02: 5문장을 지우고 "이와 같은 이유로…"만 남았다).
     if total and len(bad) / total > 0.5:
         trace.append(f"[접지-전환] 미접지 비율 {100 * len(bad) / total:.0f}% "
-                     f"— 조각 답변 대신 한계 고지로 전환")
+                     f": 조각 답변 대신 한계 고지로 전환")
         return ANCHOR_BLOCK_MSG
     if not has_direct_answer(kept):
         trace.append("[접지-전환] 제거 후 직답이 남지 않음 → 한계 고지로 전환")
@@ -1650,7 +1712,7 @@ def anchor_report_trace(model_trace: str, anchors, trace, context=""):
     trace.append(f"[접지!] trace 미접지 문장 {len(bad)}개 (전체 {len(sents)}개 중)")
     if len(bad) / len(sents) > UNANCHORED_TRACE_RATIO:
         trace.append(f"[접지!!] trace 미접지 비율 {100 * len(bad) / len(sents):.0f}% "
-                     f"— 일반론으로 채운 신호: {bad[0][:50]}")
+                     f": 일반론으로 채운 신호: {bad[0][:50]}")
 
 
 def correction_contradiction(text: str, hits):
@@ -1668,7 +1730,7 @@ def correction_contradiction(text: str, hits):
 
 
 def ground_answer(answer: str, context: str, hits, allowed, trace):
-    """답변 사후 수치·출처 검증 — 근거에 없는 수치를 내보내지 않는다.
+    """답변 사후 수치·출처 검증 : 근거에 없는 수치를 내보내지 않는다.
 
     프롬프트로 인용을 부탁하는 대신 구조로 강제한다. LLM 호출 0회.
     allowed 는 코드가 만든 값(합계·비율·단위 환산)의 정규화 문자열 집합으로,
@@ -1741,7 +1803,7 @@ def pct_gate(answer: str, pcts, trace):
 
 
 def verify_gate(answer: str, expected, trace, display="", displays=(), grounded=None):
-    """검산 게이트 — 불일치 답변을 그대로 내보내지 않는다.
+    """검산 게이트 : 불일치 답변을 그대로 내보내지 않는다.
 
     감지만 하고 통과시키면 틀린 수치가 그대로 채점된다(2025년 매출액을
     333,605,938억원 = 3경원으로 응답한 사례). 답변의 수치를 단위째 코드값으로
@@ -1755,7 +1817,7 @@ def verify_gate(answer: str, expected, trace, display="", displays=(), grounded=
     # 게이트는 답변이 "다른 숫자를 주장할 때"만 발동한다. 한계 고지·거절처럼
     # 수치를 주장하지 않는 답변은 불일치가 아니다.
     if not asserts_number(answer):
-        trace.append("[검산] 답변이 수치를 주장하지 않음 — 게이트 통과")
+        trace.append("[검산] 답변이 수치를 주장하지 않음 : 게이트 통과")
         return answer
 
     # 설명형 답변은 여러 수치를 정당하게 주장한다. expected 하나와 대조하면
@@ -1773,13 +1835,13 @@ def verify_gate(answer: str, expected, trace, display="", displays=(), grounded=
         if not stray:
             return answer
         trace.append(f"[검산-차단] 근거·계산·질문 어디에도 없는 수치 "
-                     f"{', '.join(stray[:3])} — 수치 확정 불가")
+                     f"{', '.join(stray[:3])} : 수치 확정 불가")
     else:
         if verify_number(answer, expected) or any(answer_has_number(answer, d) for d in alts):
             return answer
         found = _BIGNUM_RE.findall(answer)[:3]
         trace.append(f"[검산-차단] 코드값 {Decimal(expected):,.0f}, "
-                     f"답변값 {', '.join(found) or '없음'} — 수치 확정 불가")
+                     f"답변값 {', '.join(found) or '없음'} : 수치 확정 불가")
 
     correct = display or format_krw(expected)
     m = _NUM_WITH_UNIT_RE.search(answer)
@@ -1795,7 +1857,7 @@ def verify_gate(answer: str, expected, trace, display="", displays=(), grounded=
     return VERIFY_BLOCK_MSG
 
 
-# ── 거절 사유 5분류 ──────────────────────────────────────────────────────────
+# 거절 사유 5분류
 # "확인할 수 없습니다" 하나로 뭉개면 왜 못 답하는지가 사라진다. 폐기된 값,
 # 코퍼스 밖 회사, 수집기간 밖, 항목 부재, 개인정보는 서로 다른 사실이고
 # 붙일 인접 정보도 다르다.
@@ -1906,7 +1968,7 @@ def answer_multi_company(question_id, question, companies, ret, trace):
                 conv = [f"- {comp}: {format_krw(v)}" for comp, v in parsed if v is not None]
                 order = " > ".join(c for c, _ in sorted(
                     [(c, v) for c, v in parsed if v is not None], key=lambda x: -x[1]))
-                facts += ("\n\n### 단위 환산 및 대소 비교 (코드 계산 — 이 결과를 그대로 사용할 것)\n"
+                facts += ("\n\n### 단위 환산 및 대소 비교 (코드 계산 : 이 결과를 그대로 사용할 것)\n"
                           + "\n".join(conv) + f"\n크기 순서: {order}")
                 trace.append(f"[4+] 코드 환산·비교: {order}")
             facts += build_judgment_log([h for _, _, hs in per_comp for h in hs], trace)
@@ -1920,11 +1982,11 @@ def answer_multi_company(question_id, question, companies, ret, trace):
                 max_tokens=MAXTOK_ANSWER, label="answer-multi")
             model_trace, ans = parse_kam_output(raw)
             if not model_trace:
-                trace.append("[5!] [답변] 구분자 없음 — 코드 로그 trace로 폴백(answer는 정제 후 보존)")
+                trace.append("[5!] [답변] 구분자 없음 : 코드 로그 trace로 폴백(answer는 정제 후 보존)")
             model_trace = check_subtitle(model_trace, trace)
             mism = source_mismatch(model_trace, ans)
             if mism:
-                trace.append(f"[5!] 출처 불일치 — {mism}")
+                trace.append(f"[5!] 출처 불일치 : {mism}")
             # C3(삼성물산 149,958,000백만원 + 출처 동시 생성)가 이 경로에서 나왔다.
             # 단일 회사 경로와 같은 사후 수치·출처 검증을 건다.
             ans = fix_answer_units(ans, context, trace)
@@ -1943,9 +2005,9 @@ def answer_multi_company(question_id, question, companies, ret, trace):
             "answer": extractive_answer(question, all_hits)}
 
 
-# ── 추출식 폴백 (LLM 미설정 시): 상위 근거를 출처와 함께 제시 ─────────────────
+# 추출식 폴백 (LLM 미설정 시): 상위 근거를 출처와 함께 제시
 def extractive_answer(question: str, hits) -> str:
-    lines = ["(추출식 베이스라인 답변 — 생성모델 미연결 상태)",
+    lines = ["(추출식 베이스라인 답변 : 생성모델 미연결 상태)",
              "질의와 가장 관련성 높은 공시 근거는 다음과 같습니다.", ""]
     for i, (rec, score) in enumerate(hits[:3], 1):
         body = rec["text"].split("\n", 1)[-1].strip()
@@ -1957,7 +2019,7 @@ def extractive_answer(question: str, hits) -> str:
 
 
 def answer_one_stage(question: str, hits, trace):
-    """단순 조회 경로 — 추출 호출을 생략하고 서술 1회로 끝낸다.
+    """단순 조회 경로 : 추출 호출을 생략하고 서술 1회로 끝낸다.
 
     코드 계산이 필요 없는 질문에서 2단계를 태우면 호출이 2배가 되고, TPM이
     (input + maxTokens)로 계산되는 한 그대로 429 위험이 된다. 출처와 판정 이력은
@@ -1965,7 +2027,7 @@ def answer_one_stage(question: str, hits, trace):
     """
     ctx = build_context(hits)
     sources = "\n".join(f"- {src_label(rec)}" for rec, _ in hits[:3])
-    facts = (f"[근거 발췌]\n{ctx}\n\n### 출처 (검색 메타데이터 — 이 값을 그대로 사용할 것)\n"
+    facts = (f"[근거 발췌]\n{ctx}\n\n### 출처 (검색 메타데이터 : 이 값을 그대로 사용할 것)\n"
              + sources)
     hops = _REQ.get("owner_hops") or 0
     if hops >= 2:
@@ -1976,7 +2038,7 @@ def answer_one_stage(question: str, hits, trace):
                   f"근거에서 {hops}단계를 확인할 수 없으면 몇 단계까지 확인되는지 밝힐 것.")
     fy_note = fiscal_column_note(question, ctx, hits)
     if fy_note:
-        facts += "\n\n### 연도 열 판정 (코드 — 이 열의 값만 취할 것)\n" + fy_note
+        facts += "\n\n### 연도 열 판정 (코드 : 이 열의 값만 취할 것)\n" + fy_note
         trace.append(f"[4+] {fy_note}")
     facts += build_judgment_log(hits, trace)
     raw = call_clova_raw(
@@ -1989,11 +2051,11 @@ def answer_one_stage(question: str, hits, trace):
         max_tokens=MAXTOK_ANSWER, label="answer-1stage")
     model_trace, ans = parse_kam_output(raw)
     if not model_trace:
-        trace.append("[5!] [답변] 구분자 없음 — 코드 로그 trace로 폴백(answer는 정제 후 보존)")
+        trace.append("[5!] [답변] 구분자 없음 : 코드 로그 trace로 폴백(answer는 정제 후 보존)")
     model_trace = check_subtitle(model_trace, trace)
     mism = source_mismatch(model_trace, ans)
     if mism:
-        trace.append(f"[5!] 출처 불일치 — {mism}")
+        trace.append(f"[5!] 출처 불일치 : {mism}")
     ans = fix_answer_units(ans, ctx, trace)
     q_nums = {_digits(t) for t in re.findall(r"\d[\d,]{3,}", question)}
     ans = ground_answer(ans, ctx, hits, q_nums, trace)
@@ -2003,7 +2065,7 @@ def answer_one_stage(question: str, hits, trace):
     bad_corr = correction_contradiction(ans, hits)
     if bad_corr:
         ans = renumber(ans.replace(bad_corr, " "))
-        trace.append(f"[정정-모순] 정정 이력이 있는 문서를 미정정으로 서술 — 문장 제거: "
+        trace.append(f"[정정-모순] 정정 이력이 있는 문서를 미정정으로 서술 : 문장 제거: "
                      f"{bad_corr[:50]}")
         if not has_direct_answer(ans):
             ans = ANCHOR_BLOCK_MSG
@@ -2011,24 +2073,24 @@ def answer_one_stage(question: str, hits, trace):
     if bad_corr_trace:
         trace.append(f"[정정-모순] trace가 정정 이력을 부정함: {bad_corr_trace[:60]}")
     if truncated(ans):
-        trace.append("[5!] 응답 잘림 추정(문장 미완) — 재요청하지 않음")
+        trace.append("[5!] 응답 잘림 추정(문장 미완) : 재요청하지 않음")
     leaks = leaked_structure(ans)
     if leaks:
         ans = strip_leaked_labels(ans)
-        trace.append(f"[5!] 입력 구조 노출 감지 — 제거함: {leaks}")
+        trace.append(f"[5!] 입력 구조 노출 감지 : 제거함: {leaks}")
     ans = strip_empty_templates(ans, trace)
     ans = strip_opinion_sentences(ans, trace)
     if hops >= 2:
         reached = len(re.findall(r"(?:최대주주|모회사|지배기업|지주회사)", ans or ""))
         if reached < hops:
-            trace.append(f"[5!] 단계 미달 — {hops}단계를 물었으나 답변이 언급한 "
+            trace.append(f"[5!] 단계 미달 : {hops}단계를 물었으나 답변이 언급한 "
                          f"지배구조 단계는 {reached}개")
     trace.append("[5] 서술 생성 완료(1단계)")
     return model_trace, ans
 
 
 def _line_label(line):
-    """'값:' 줄의 표시용 라벨 — '기준:' 필드가 있으면 그것, 없으면 잔여 텍스트."""
+    """'값:' 줄의 표시용 라벨 : '기준:' 필드가 있으면 그것, 없으면 잔여 텍스트."""
     m = re.search(r"기준\s*[:：]\s*([^|\n]+)", line or "")
     if m:
         return m.group(1).strip()[:24]
@@ -2059,14 +2121,31 @@ def struct_cells_for_hits(hits):
                        .get(rec["rcept_no"], [])
                        if c.get("section_path") == rec.get("section_path")),
                       key=lambda c: c.get("chunk_id") or "") or [rec]
-        # 청크 경계의 메타데이터 대괄호 줄을 걷어내고 이어 붙인다 — 표가 청크
+        # 청크 경계의 메타데이터 대괄호 줄을 걷어내고 이어 붙인다 : 표가 청크
         # 중간에서 잘리면 뒷조각이 헤더를 잃는다(T10: 연결 영업이익 열 라벨 소실).
         joined = "\n".join(
             re.sub(r"(?m)^\[[^\]\n]*\|[^\]\n]*\]\s*$", "", c.get("text") or "")
             for c in sibs)
-        cells += parse_cells(joined, rec["rcept_no"],
+        # table_id는 섹션마다 t1부터 시작한다. 섹션이 다른 표를 한 표로 합치지 않는다.
+        parsed = parse_cells(joined, rec["rcept_no"],
                              rec["rcept_dt"], rec.get("report_nm", ""))
+        cells += [c._replace(table_id=c.table_id + ":" + (rec.get("section_path") or ""))
+                  for c in parsed]
+        if parsed:
+            expanded = dict(rec, text=joined)
+            existing = _REQ.setdefault("struct_evidence", [])
+            if not any((r.get("corp"), r["rcept_no"], r.get("section_path")) == key
+                       for r, _ in existing):
+                existing.append((expanded, 0.0))
     return cells
+
+
+def response_evidence(hits):
+    """계산에 실제 읽은 섹션을 검색 발췌와 함께 제출한다."""
+    expanded = _REQ.get("struct_evidence") or []
+    keys = {(r.get("corp"), r["rcept_no"], r.get("section_path")) for r, _ in expanded}
+    return [(r, s) for r, s in hits
+            if (r.get("corp"), r["rcept_no"], r.get("section_path")) not in keys] + expanded
 
 
 def _deriv_allowed_nums(derivs, cells):
@@ -2096,9 +2175,12 @@ def attach_derivations(ans, deriv_lines, hits, trace, docs=None):
     src_nos = " / ".join(dict.fromkeys(
         str(n) for n in (docs or []) if n)) or " / ".join(dict.fromkeys(
         str(rec["rcept_no"]) for rec, _ in hits[:3] if rec.get("rcept_no")))
-    if (not ans) or STRUCT_REFUSAL_RE.search(ans):
+    if ans == VERIFY_BLOCK_MSG:
+        _REQ["audit_exclusions"] = ["근거 대조를 통과하지 못한 생성 서술을 제외하고 코드 산출 내역을 제시했다"]
+        ans = "생성 서술의 근거 대조에서 불일치가 발견되어 해당 서술을 제외했습니다. 공시 표에서 직접 계산한 결과는 다음과 같습니다."
+    elif (not ans) or STRUCT_REFUSAL_RE.search(ans):
         ans = "질문에 해당하는 산출값은 다음과 같습니다."
-        trace.append("[5+] 산문이 한계 고지인데 코드 산출값 존재 — 산문을 산출 안내로 대체")
+        trace.append("[5+] 산문이 한계 고지인데 코드 산출값 존재 : 산문을 산출 안내로 대체")
     ans = (ans.rstrip() + "\n\n[산출 내역]\n" + "\n".join(deriv_lines)
            + (f"\n근거 {src_nos}" if src_nos else ""))
     trace.append(f"[5+] 산출 내역 {len(deriv_lines)}줄 첨부(코드 계산, 모델 비경유)")
@@ -2106,28 +2188,37 @@ def attach_derivations(ans, deriv_lines, hits, trace, docs=None):
 
 
 def answer_struct(question: str, hits, trace):
-    """표 직독 + 구조 연산 경로. 유효한 파생이 없으면 None(기존 경로 폴백).
-
-    질문에서는 명사(회사·지표·시점·항목)만 쓰고 의도(합계·차액·비율)는
-    판정하지 않는다. 연산은 셀 구조가 결정하고, LLM은 파생 중 질문에
-    해당하는 것을 골라 서술만 한다.
-    """
+    """표에서 계산 후보를 만들고 답변을 생성한다. 후보가 없으면 None을 반환한다."""
     cells = struct_cells_for_hits(hits)
     if not cells:
         return None
     derivs = SO.derive(cells, question)
+    if os.environ.get("USE_ACCOUNTING_METRICS", "1") != "0":
+        derivs += derive_margins(cells, question, hits)
     if not derivs:
         return None
     trace.append(f"[4S] 표 직독 {len(cells)}셀 → 구조 연산 {len(derivs)}건 "
-                 "(의도 판정 없음 — 구조에서 유효한 연산 전부)")
+                 "(의도 판정 없음 : 구조에서 유효한 연산 전부)")
     for d in derivs:
         trace.append(f"[4S+] {d.desc}")
     deriv_lines = [d.desc for d in derivs]
-    ctx = build_context(hits)
-    sources = "\n".join(f"- {src_label(rec)}" for rec, _ in hits[:3])
-    facts = ("### 산출 내역 — 코드가 공시 표에서 직접 계산했다. 그대로 인용하고 "
+    evidence_hits = response_evidence(hits)
+    ctx = build_context(evidence_hits)
+    sources = "\n".join(dict.fromkeys(f"- {src_label(rec)}" for rec, _ in evidence_hits))
+    facts = ("### 산출 내역 : 코드가 공시 표에서 직접 계산했다. 그대로 인용하고 "
              "재계산·반올림하지 말 것\n" + "\n".join(deriv_lines)
-             + "\n\n### 출처 (검색 메타데이터 — 이 값을 그대로 사용할 것)\n" + sources)
+             + "\n\n### 출처 (검색 메타데이터 : 이 값을 그대로 사용할 것)\n" + sources)
+    facts += build_judgment_log(evidence_hits, trace)
+    arithmetic = SO.render_arithmetic(derivs)
+    if arithmetic is not None and os.environ.get("USE_CODE_ARITHMETIC", "1") != "0":
+        _REQ["audit_basis"] = "공시 표의 같은 항목·단위·시점을 묶어 합산하고 후시점에서 전시점을 차감했다"
+        _REQ["audit_result"] = "; ".join(d.desc for d in derivs if d.kind == "diff") or deriv_lines[0]
+        trace.append("[5] 합계·차감 서술을 코드 계산값과 부호에서 구성")
+        used_docs = {str(n) for d in derivs for n in d.docs}
+        used_sources = "\n".join(dict.fromkeys(
+            f"- {src_label(rec)}" for rec, _ in evidence_hits
+            if str(rec.get("rcept_no")) in used_docs))
+        return "", arithmetic + "\n\n근거:\n" + (used_sources or sources)
     raw = call_clova_raw(
         SYSTEM_PROMPT,
         f"[공시에서 추출·검증된 사실]\n{facts}\n\n[질문]\n{question}\n\n"
@@ -2187,7 +2278,7 @@ def answer_single_company(question: str, hits, trace):
         trace.append("[4] 어림수 표현이 있으나 표 형식 수치가 함께 있어 재추출 생략")
         rounded = False
     elif rounded:
-        trace.append("[4!] 어림수 추출 감지 — 원문 표 수치 재추출 필요")
+        trace.append("[4!] 어림수 추출 감지 : 원문 표 수치 재추출 필요")
         ext2 = call_clova_raw(
             EXTRACT_SYSTEM,
             f"[발췌]\n{ctx}\n\n[질문]\n{question}\n\n{EXTRACT_INSTRUCT}\n{REEXTRACT_INSTRUCT}",
@@ -2197,13 +2288,13 @@ def answer_single_company(question: str, hits, trace):
             trace.append(f"[4-재추출] {ext.splitlines()[0][:120]}")
             rounded = has_round_number(ext)
             if rounded:
-                trace.append("[4!] 재추출도 어림수 — 코드 환산 생략, 표 기재값 확인 필요 문구 부기")
+                trace.append("[4!] 재추출도 어림수 : 코드 환산 생략, 표 기재값 확인 필요 문구 부기")
 
     q_amounts = amount_variants(question)
     ext_g = grounded_extract(ext, ctx, trace, q_amounts)
     values = [] if rounded else parse_krw_all(ext_g, ctx)
     shares = [] if rounded else parse_shares_all(ext_g)
-    # 계산 상태 — 값의 유무(None) 하나로 뭉개면 '계산 불필요'와 '추출 실패'와
+    # 계산 상태 : 값의 유무(None) 하나로 뭉개면 '계산 불필요'와 '추출 실패'와
     # '단위 오염'이 구분되지 않아 게이트가 전부 통과시킨다(E2의 3경원).
     polluted = None
     mm = unit_mismatch(ext_g, ctx)
@@ -2211,11 +2302,11 @@ def answer_single_company(question: str, hits, trace):
         fixed_vals = parse_krw_ctx(ext_g, ctx)
         if fixed_vals:
             values = fixed_vals
-            trace.append(f"[4!] 단위 불일치 — 추출 {mm[0]} ≠ 청크 선언 {mm[1]}. "
+            trace.append(f"[4!] 단위 불일치 : 추출 {mm[0]} ≠ 청크 선언 {mm[1]}. "
                          f"청크 단위를 신뢰해 교정: {values[0]:,.0f}원")
         else:
             polluted = f"추출 단위 {mm[0]} != 청크 선언 단위 {mm[1]}"
-            trace.append(f"[4!] 단위 불일치 — {polluted}. 교정 불가, 수치 확정 차단")
+            trace.append(f"[4!] 단위 불일치 : {polluted}. 교정 불가, 수치 확정 차단")
             values = []
 
     # 비율 질문인데 값이 1개면 코드가 나눗셈을 못 한다. 이때 그대로 서술로 넘기면
@@ -2247,9 +2338,9 @@ def answer_single_company(question: str, hits, trace):
     mism_metric = metric_mismatch(question, ctx, ext_g)
     if mism_metric:
         kind, want_w, label = mism_metric
-        trace.append(f"[4!] 항목명 불일치({kind}) — 질문은 '{want_w}'인데 추출값은 "
+        trace.append(f"[4!] 항목명 불일치({kind}) : 질문은 '{want_w}'인데 추출값은 "
                      f"'{label}' 행에서 나왔다"
-                     + (". 코드 계산 생략" if kind == "block" else " (비지표 라벨 — 기록만)"))
+                     + (". 코드 계산 생략" if kind == "block" else " (비지표 라벨 : 기록만)"))
         if kind == "block":
             values, shares = [], []
             facts_metric_note = (f"추출값이 '{label}' 행에서 나왔다. 질문이 요구한 항목은 "
@@ -2265,17 +2356,17 @@ def answer_single_company(question: str, hits, trace):
     # 출처는 모델이 다시 쓰게 하지 않고 검색된 청크 메타데이터로 코드가 채운다.
     sources = "\n".join(f"- {src_label(rec)}" for rec, _ in hits[:3])
 
-    facts = ext + "\n\n### 출처 (검색 메타데이터 — 이 값을 그대로 사용할 것)\n" + sources
+    facts = ext + "\n\n### 출처 (검색 메타데이터 : 이 값을 그대로 사용할 것)\n" + sources
     expected = None
     unit = asked_unit(question)
     calc_lines = []
-    deriv_lines = []       # [산출 내역] — 의도 판정 경로의 계산 (경고 시 보류)
-    deriv_struct = []      # [산출 내역] — 구조 검산 통과분 (보류 없이 첨부)
-    allowed_nums = set()   # 코드 계산으로 생성된 값 — 컨텍스트에 없어도 허용
-    pcts = []              # 코드가 계산한 비율 — 답변이 다른 비율을 쓰면 교체한다
+    deriv_lines = []       # [산출 내역] : 의도 판정 경로의 계산 (경고 시 보류)
+    deriv_struct = []      # [산출 내역] : 구조 검산 통과분 (보류 없이 첨부)
+    allowed_nums = set()   # 코드 계산으로 생성된 값 : 컨텍스트에 없어도 허용
+    pcts = []              # 코드가 계산한 비율 : 답변이 다른 비율을 쓰면 교체한다
     if any(implausible_krw(v) for v in values):
         polluted = polluted or "환산값이 상한(1경원)을 초과"
-        trace.append(f"[4!] 단위 오염 의심 — {polluted}. 코드 계산 생략, 수치 확정 차단")
+        trace.append(f"[4!] 단위 오염 의심 : {polluted}. 코드 계산 생략, 수치 확정 차단")
         values = []
         if ratio_q:
             ratio_blocked = True
@@ -2290,9 +2381,9 @@ def answer_single_company(question: str, hits, trace):
     # 코드가 합산하지 않은 경우에도 모델이 옳게 더한 값은 허용한다(A1).
     allowed_nums |= combo_values(values) | combo_values(shares)
 
-    # ratio2 — 서술문에서 추출된 부분 값들의 합이 표 총액과 0.1% 이내로
+    # ratio2 : 서술문에서 추출된 부분 값들의 합이 표 총액과 0.1% 이내로
     # 일치하면 부분합이 곧 전체다(T06: 목적별 금액이 취득결정 총액을 분할).
-    # 분모를 추측하지 않는다 — 검산을 통과한 총액만 전체로 인정한다.
+    # 분모를 추측하지 않는다 : 검산을 통과한 총액만 전체로 인정한다.
     if use_struct_ops() and len(values) >= 2:
         try:
             lv = [(_line_label(ln), v) for ln in _value_lines(ext_g)
@@ -2304,7 +2395,7 @@ def answer_single_company(question: str, hits, trace):
                 allowed_nums.add(_digits(str(d.value)))
                 trace.append(f"[4S+] {d.desc}")
         except Exception as e:
-            trace.append(f"[4S-err] ratio2 실패({type(e).__name__}) — 생략")
+            trace.append(f"[4S-err] ratio2 실패({type(e).__name__}) : 생략")
 
     if len(values) == 2 and wants_diff(question):
         diff = abs(values[0] - values[1])
@@ -2340,14 +2431,14 @@ def answer_single_company(question: str, hits, trace):
             # RATIO_INSTRUCT는 둘째 줄에 '전체'를 요구한다. 둘째 값이 첫 값
             # 이상일 때만 전체(분모)로 인정한다. 작으면 같은 층위의 다른 부분이고,
             # 부분들의 합은 전사 값이 아니다(부문 합계는 내부거래 제거 전이라
-            # 전사와 다르다 — T10에서 잘못된 분모를 만든 원인). 전사·합계·총계
+            # 전사와 다르다 : T10에서 잘못된 분모를 만든 원인). 전사·합계·총계
             # 행이 표에 있으면 share_class_ratios가 표 직독으로 이미 잡았다.
             if vs[1] < vs[0]:
                 calc_lines.append(
-                    f"{label} 기준 비율: 산출하지 않았다 — 추출된 값들이 모두 부분 "
+                    f"{label} 기준 비율: 산출하지 않았다 : 추출된 값들이 모두 부분 "
                     f"항목이고 전사·합계 행을 확보하지 못했다. 부분의 합을 분모로 "
                     f"쓰지 말고, 비율을 직접 계산해 제시하지 말 것.")
-                trace.append(f"[4!] 비율({label}) 미산출 — 전체(분모) 미확보: "
+                trace.append(f"[4!] 비율({label}) 미산출 : 전체(분모) 미확보: "
                              + ", ".join(f"{v:,.0f}" for v in vs))
                 continue
             total, basis = vs[1], "둘째 값이 전체"
@@ -2360,13 +2451,13 @@ def answer_single_company(question: str, hits, trace):
             pcts.append((label, pct))
             allowed_nums |= {_digits(str(pct)), f"{vs[0]:.0f}", f"{total:.0f}"}
             trace.append(f"[4+] 코드 비율({label}): {vs[0]:,.0f} / {total:,.0f} "
-                         f"= {pct_s} — {basis}")
+                         f"= {pct_s} : {basis}")
         if len(values) >= 2 and len(shares) >= 2:
             calc_lines.append("두 기준의 비율이 다르므로 답변에 병기하고 각각 무엇을 "
                               "분모로 삼은 값인지 밝힐 것")
         expected = values[0] if len(values) >= 2 else None
     elif len(values) >= 2:
-        # 비교 등 — 합산하지 않고 값들을 그대로 나열한다(C3의 965조원 사고 방지).
+        # 비교 등 : 합산하지 않고 값들을 그대로 나열한다(C3의 965조원 사고 방지).
         calc_lines.append("확인된 값: " + ", ".join(format_krw(v) for v in values))
         trace.append(f"[4+] 코드 환산(합산 안 함, {len(values)}건): "
                      + ", ".join(f"{v:,.0f}" for v in values))
@@ -2386,9 +2477,9 @@ def answer_single_company(question: str, hits, trace):
         trace.append(f"[4+] 요청 단위 환산: {conv}")
 
     if _REQ.get("counted"):
-        calc_lines.append("건수 집계: " + str(len(_REQ["counted"])) + "건 — "
+        calc_lines.append("건수 집계: " + str(len(_REQ["counted"])) + "건 : "
                           + ", ".join(f"{no} {nm}" for no, nm in _REQ["counted"]))
-        deriv_lines.append("건수 집계: " + str(len(_REQ["counted"])) + "건 — "
+        deriv_lines.append("건수 집계: " + str(len(_REQ["counted"])) + "건 : "
                            + ", ".join(f"{no} {nm}" for no, nm in _REQ["counted"]))
     if GROWTH_QUESTION_RE.search(question):
         series = year_values(ext_g, ctx)
@@ -2400,7 +2491,7 @@ def answer_single_company(question: str, hits, trace):
             calc_lines.append(
                 "적자 구간(" + ", ".join(f"{y}년" for y in neg) + ")이 포함되어 성장률을 "
                 "산출하지 않았다. 증감률 대신 적자전환/흑자전환/적자지속으로 서술한다.")
-            trace.append(f"[4!] 적자 구간 포함({', '.join(neg)}) — CAGR 계산 생략")
+            trace.append(f"[4!] 적자 구간 포함({', '.join(neg)}) : CAGR 계산 생략")
         elif g is not None:
             yrs = list(series)
             span = int(yrs[-1]) - int(yrs[0])
@@ -2417,7 +2508,7 @@ def answer_single_company(question: str, hits, trace):
                 deriv_lines.append(
                     f"연평균 성장률(CAGR, {yrs[0]}→{yrs[-1]}, 구간 {span}년): {g}%")
             # 총 증감률과 연평균은 다른 값이다. 질문이 증감률을 물으면 둘을
-            # 구분해 싣는다 — 라벨 하나만 주면 모델이 그것을 증감률로 옮겨 적는다.
+            # 구분해 싣는다 : 라벨 하나만 주면 모델이 그것을 증감률로 옮겨 적는다.
             total_pct = ((Decimal(series[yrs[-1]]) / Decimal(series[yrs[0]]) - 1)
                          * 100).quantize(Decimal("0.01"))
             calc_lines.append(
@@ -2438,7 +2529,7 @@ def answer_single_company(question: str, hits, trace):
                 f"{y}년 {series[y]:,.0f}원" for y in series))
             calc_lines.append("연평균 성장률은 계산하지 않았다(연도 수 부족 또는 적자 구간). "
                               "직접 계산해 제시하지 말 것.")
-            trace.append("[4!] 성장률 계산 불가 — 연도별 값만 제공")
+            trace.append("[4!] 성장률 계산 불가 : 연도별 값만 제공")
 
     fy_note = fiscal_column_note(question, ctx, hits)
     if fy_note:
@@ -2463,7 +2554,7 @@ def answer_single_company(question: str, hits, trace):
         facts += ("\n\n### 요구 분리\n질문에 수준 평가·의견 요구가 섞여 있다. 사실만 "
                   "서술하고 좋다·나쁘다·적정하다는 평가 문장을 쓰지 말 것.")
     if calc_lines:
-        facts += ("\n\n### 코드 계산 결과 — 그대로 사용하고 재계산하지 말 것\n"
+        facts += ("\n\n### 코드 계산 결과 : 그대로 사용하고 재계산하지 말 것\n"
                   + "\n".join(calc_lines))
 
     # 기각 서술의 재료. 검산 결과가 판정 이력에 반영되도록 검산을 서술 호출 앞으로
@@ -2480,15 +2571,15 @@ def answer_single_company(question: str, hits, trace):
         max_tokens=MAXTOK_ANSWER, label="answer")
     model_trace, ans = parse_kam_output(raw)
     if not model_trace:
-        trace.append("[5!] [답변] 구분자 없음 — 코드 로그 trace로 폴백(answer는 정제 후 보존)")
+        trace.append("[5!] [답변] 구분자 없음 : 코드 로그 trace로 폴백(answer는 정제 후 보존)")
     model_trace = check_subtitle(model_trace, trace)
     mism = source_mismatch(model_trace, ans)
     if mism:
-        trace.append(f"[5!] 출처 불일치 — {mism}")
+        trace.append(f"[5!] 출처 불일치 : {mism}")
     if rounded and ans:
         ans += "\n\n※ 위 수치는 조·억 단위 어림값으로 추출되어 원문 표 기재값과 다를 수 있습니다. 표 기재값 확인 필요."
     if polluted and ans and _BIGNUM_RE.search(ans):
-        trace.append(f"[4!-차단] 단위 오염 상태에서 답변에 수치 등장 — 한계 고지로 전환")
+        trace.append(f"[4!-차단] 단위 오염 상태에서 답변에 수치 등장 : 한계 고지로 전환")
         ans = UNIT_BLOCK_MSG
     if ratio_blocked and ans:
         # 근거 원문에 그대로 적힌 비율(지분율 등)은 코드 계산 없이도 인용 가능하다.
@@ -2515,7 +2606,7 @@ def answer_single_company(question: str, hits, trace):
                 if expected is not None else [])
     display = displays[0] if displays else ""
     allowed_nums |= {_digits(d) for d in displays}
-    # (a) 컨텍스트 (b) 코드 계산 결과 (c) 질문 제시 수치 — 셋의 합집합
+    # (a) 컨텍스트 (b) 코드 계산 결과 (c) 질문 제시 수치 : 셋의 합집합
     grounded = ({_digits(t) for t in re.findall(r"\d[\d,]{3,}", ctx)}
                 | {_digits(t) for t in re.findall(r"\d[\d,]{3,}", question)}
                 | set(allowed_nums))
@@ -2530,7 +2621,7 @@ def answer_single_company(question: str, hits, trace):
     bad_corr = correction_contradiction(ans, hits)
     if bad_corr:
         ans = renumber(ans.replace(bad_corr, " "))
-        trace.append(f"[정정-모순] 정정 이력이 있는 문서를 미정정으로 서술 — 문장 제거: "
+        trace.append(f"[정정-모순] 정정 이력이 있는 문서를 미정정으로 서술 : 문장 제거: "
                      f"{bad_corr[:50]}")
         if not has_direct_answer(ans):
             ans = ANCHOR_BLOCK_MSG
@@ -2538,30 +2629,30 @@ def answer_single_company(question: str, hits, trace):
     if bad_corr_trace:
         trace.append(f"[정정-모순] trace가 정정 이력을 부정함: {bad_corr_trace[:60]}")
     if truncated(ans):
-        trace.append("[5!] 응답 잘림 추정(구분자 없음 + 문장 미완) — 재요청하지 않음")
+        trace.append("[5!] 응답 잘림 추정(구분자 없음 + 문장 미완) : 재요청하지 않음")
     leaks = leaked_structure(ans)
     if leaks:
         ans = strip_leaked_labels(ans)
-        trace.append(f"[5!] 입력 구조 노출 감지 — 제거함: {leaks}")
+        trace.append(f"[5!] 입력 구조 노출 감지 : 제거함: {leaks}")
     ans = strip_empty_templates(ans, trace)
     ans = strip_opinion_sentences(ans, trace)
     if hops >= 2:
         reached = len(re.findall(r"(?:최대주주|모회사|지배기업|지주회사)", ans or ""))
         if reached < hops:
-            trace.append(f"[5!] 단계 미달 — {hops}단계를 물었으나 답변이 언급한 "
+            trace.append(f"[5!] 단계 미달 : {hops}단계를 물었으나 답변이 언급한 "
                          f"지배구조 단계는 {reached}개")
-    # [산출 내역] — 코드가 계산한 것이 있으면 답변 끝에 붙인다. 모든 게이트
+    # [산출 내역] : 코드가 계산한 것이 있으면 답변 끝에 붙인다. 모든 게이트
     # (검산·접지·앵커·정정모순) 뒤에 붙이므로 모델 산문이 지워지거나 틀려도
     # 내역은 남는다(T06: 코드가 71.88%를 맞게 계산했는데 산문만 나가서 실종).
-    # 다만 [4!] 경고가 하나라도 붙은 계산은 싣지 않는다 — 산출 내역은 산문
+    # 다만 [4!] 경고가 하나라도 붙은 계산은 싣지 않는다 : 산출 내역은 산문
     # 게이트를 우회하므로, 의도 오판(T02: wants_sum이 네 값을 합산) 상태에서
     # 실으면 차단됐어야 할 오답이 자신 있는 오답으로 나간다. 구조 판정([1])이
     # 들어와 계산이 맞게 되면 이 게이트를 좁힌다.
     calc_warned = any(str(ln).startswith("[4!") or "차단" in str(ln)
                       for ln in trace)
     if calc_warned and deriv_lines:
-        trace.append("[5!] 계산 경고([4!]·차단) 존재 — 의도 판정 계산분 첨부 보류")
-    # 구조 검산 통과분(deriv_struct)은 보류하지 않는다 — 분모·연산이 표 구조와
+        trace.append("[5!] 계산 경고([4!]·차단) 존재 : 의도 판정 계산분 첨부 보류")
+    # 구조 검산 통과분(deriv_struct)은 보류하지 않는다 : 분모·연산이 표 구조와
     # 검산에서 나왔으므로 의도 오판의 영향권 밖이다(T06의 71.88%).
     attach = deriv_struct + ([] if calc_warned else deriv_lines)
     ans = attach_derivations(ans, attach, hits, trace)
@@ -2570,7 +2661,7 @@ def answer_single_company(question: str, hits, trace):
 
 
 def adjacent_facts(question, companies=None, limit=3):
-    """인접 사실 — 거절 답변에 붙일 관련 공시 목록. 실패해도 빈 리스트."""
+    """인접 사실 : 거절 답변에 붙일 관련 공시 목록. 실패해도 빈 리스트."""
     out = []
     try:
         ret = get_retriever()
@@ -2590,13 +2681,14 @@ def adjacent_facts(question, companies=None, limit=3):
 
 def answer_refusal(question_id: str, question: str, kind: str, subject: str = "",
                    companies=None, extra_log=None) -> dict:
-    """거절 사유별 응답 — 사유·산문·인접 사실을 분류에 맞춰 구성한다."""
+    """거절 사유별 응답 : 사유·산문·인접 사실을 분류에 맞춰 구성한다."""
     log = [f"[0] 거절 판정: {kind}"] + list(extra_log or [])
+    _REQ["audit_limit"] = refusal_answer(kind, [], subject)
     adjacent = [] if kind == REFUSAL_OUT_OF_UNIVERSE else adjacent_facts(question, companies)
     if adjacent:
         log.append(f"[1] 인접 사실 {len(adjacent)}건 확보: {', '.join(adjacent)}")
     else:
-        log.append("[1] 인접 사실 없음 — 거절 사유만으로 응답")
+        log.append("[1] 인접 사실 없음 : 거절 사유만으로 응답")
     return {
         "question_id": question_id, "question": question,
         "retrieved_context": "",
@@ -2625,11 +2717,11 @@ PERIOD_PARTIAL_NOTE = (
 
 
 def answer_boundary(question_id: str, question: str) -> dict:
-    """[T6] 경계 질의 — 미래 예측·투자의견 요구.
+    """[T6] 경계 질의 : 미래 예측·투자의견 요구.
 
     거절만 하면 정보한계 대응의 절반이다(v1.2 §4 T6). 거절 + 확인 가능한 인접
     사실 + 역질문의 3박자를 만든다. 다만 인접 사실은 모델이 아니라 코드가
-    검색 메타데이터에서 채운다 — 예측 질문을 생성 모델에 넘기지 않기 위해서다.
+    검색 메타데이터에서 채운다 : 예측 질문을 생성 모델에 넘기지 않기 위해서다.
     """
     trace_log = ["[0] 미래 예측·투자의견 요구로 판정 → 규칙(공시 근거 사실만 답변)에 따라 거절",
                  "[1] 거절만으로 끝내지 않기 위해 인접 사실 검색 시도"]
@@ -2678,10 +2770,8 @@ def answer_boundary(question_id: str, question: str) -> dict:
     }
 
 
-# ── 집계 질의 경로 ───────────────────────────────────────────────────────────
-# 집계는 top-k 검색으로 구조적으로 풀리지 않는다. top-k를 키우면 청크 재현율은
-# 오르지만 집계 정확도는 오르지 않고 노이즈가 쌓여 떨어지기도 한다. E05는 검색
-# 8건 기준 최대가 1,013,700,000,000원인데 전수 기준 최대는 1,095,900,000,000원이다.
+# 집계 질의 경로
+# 집계는 manifest로 조건에 맞는 문서를 전수 조회한다.
 # '최대주주'의 '최대'가 극값으로 잡히면 E10 같은 나열 질의가 극값 경로로 샌다.
 EXTREMUM_QUESTION_RE = re.compile(
     # '최종 정정본 기준'은 극값 요구가 아니라 판본 지정이다(T01이 집계 경로로 샘).
@@ -2766,12 +2856,12 @@ def aggregate_facts(kind, res, question):
         lines = [f"조건에 맞는 문서 {res['n_docs']}건을 원장에서 전수 조회했고, 그중 "
                  f"{res['n_parsed']}건에서 {res['field']}을 파싱했다.",
                  f"{'최대' if res['mode'] == 'max' else '최소'}: {p['value']:,.0f}원 "
-                 f"— {p['report_nm']}, 접수일 {p['rcept_dt']}, 접수번호 {p['rcept_no']}"]
+                 f": {p['report_nm']}, 접수일 {p['rcept_dt']}, 접수번호 {p['rcept_no']}"]
         fx = p.get("fx")
         if fx:
             lines.append(f"채택 문서에 적힌 환율: 1{fx['currency']} = {fx['rate']}원"
                          + (f" ({fx['basis_date']}일자 매매기준환율)" if fx["basis_date"] else "")
-                         + " — 환율은 계약 건마다 다르므로 다른 문서의 환율을 쓰지 말 것.")
+                         + " : 환율은 계약 건마다 다르므로 다른 문서의 환율을 쓰지 말 것.")
         else:
             lines.append("채택 문서에서 환율 기재를 찾지 못했다. 다른 문서의 환율을 "
                          "가져다 쓰지 말고 기재 없음으로 밝힐 것.")
@@ -2790,6 +2880,14 @@ def aggregate_facts(kind, res, question):
                          f"하나를 고르지 말고 동수임을 밝힐 것.")
         else:
             lines.append(f"최다 사유: {res['top'][0]} {res['top_n']}건")
+        if res.get("change_occurrences"):
+            lines.append("정정 전후 표의 계약금액·계약기간 범주 발생 횟수(문서 건수와 별도): "
+                         + ", ".join(f"{k} {v}회" for k, v in res["change_occurrences"].items()))
+            lines.append(f"정정 전후 표 확인 {res['n_change_docs']}문서, "
+                         f"변경 항목 미확정 {res['n_unresolved_change_docs']}문서. "
+                         "한 문서에서 금액과 기간이 바뀌면 문서 1건, 범주별 발생 2회다. "
+                         "매출액 대비 비율 등 다른 변경 행은 이 두 범주의 집계에 추가하지 않았다. "
+                         "전체 정정사유 종류를 망라한 집계가 아니며, 기존 사유 원문별 건수와 혼용하지 말 것.")
         return "\n".join("- " + x for x in lines)
     rows = res["rows"]
     lines = [f"조건에 맞는 문서 {res['n_docs']}건 전체를 접수일순으로 나열한다."]
@@ -2801,11 +2899,11 @@ def aggregate_facts(kind, res, question):
 
 AGG_CONTEXT_DOCS = 8       # retrieved_context에 실을 문서 수 상한
 AGG_CONTEXT_CHARS = 1200   # 문서당 상한
-AGG_PICKED_CHARS = 3000    # 채택 문서는 더 넓게 — 환율·상대·기간이 뒤쪽에 있다
+AGG_PICKED_CHARS = 3000    # 채택 문서는 더 넓게 : 환율·상대·기간이 뒤쪽에 있다
 
 
 def aggregate_context(corp, res, kind):
-    """집계에 쓰인 문서의 원문 일부 — retrieved_context로 남긴다."""
+    """집계에 쓰인 문서의 원문 일부 : retrieved_context로 남긴다."""
     if kind == "extremum":
         # 채택 문서를 맨 앞에 둔다. 뒤섞으면 모델이 다른 건의 값을 가져온다.
         nos = [res["picked"]["rcept_no"]] + [
@@ -2828,7 +2926,7 @@ def aggregate_context(corp, res, kind):
 
 
 def answer_aggregate(question_id, question, corp, ret, trace):
-    """집계 경로 — 검색이 아니라 원장 전수를 근거로 답한다. 실패 시 None."""
+    """집계 경로 : 검색이 아니라 원장 전수를 근거로 답한다. 실패 시 None."""
     kind = aggregate_intent(question)
     if not kind:
         return None
@@ -2842,10 +2940,25 @@ def answer_aggregate(question_id, question, corp, ret, trace):
         return None
     n = res.get("n_docs", 0)
     trace.append(f"[집계] 원장에서 조건에 맞는 문서 {n}건 전수 조회 "
-                 f"(검색 top-k가 아니라 전수이므로 누락 없음)")
+                 f"(필드 파싱 성공 {res.get('n_parsed', n)}건; 원장 조회와 본문 추출의 완전성은 별도)")
     context = aggregate_context(corp, res, kind)
-    facts = ("### 원장 전수 집계 결과 (코드 — 이 결과를 그대로 사용하고 재계산하지 말 것)\n"
+    _REQ["audit_subject"] = f"{corp} 공시 집계"
+    _REQ["audit_result"] = f"원장 {n}건을 조회한 결과 본문 필드 파싱은 {res.get('n_parsed', n)}건이었다"
+    _REQ["audit_limit"] = "원장 조회 건수와 본문 추출 성공 건수는 구분하며, 미추출 항목은 확정하지 않았다"
+    doc_rows = res.get("per_doc") or res.get("rows") or []
+    by_no = AGG.chunks_by_rcept(corp)
+    _REQ["audit_docs"] = [by_no[r['rcept_no']][0] for r in doc_rows if by_no.get(r['rcept_no'])]
+    facts = ("### 원장 전수 집계 결과 (코드 : 이 결과를 그대로 사용하고 재계산하지 말 것)\n"
              + aggregate_facts(kind, res, question))
+    # 집계 결과와 문서별 사유도 제출 근거에 남겨 작은 건수와 고유명사를 대조한다.
+    context += "\n\n[코드 집계 내역]\n" + facts
+    if res.get("per_doc"):
+        context += "\n" + "\n".join(
+            f"접수번호 {r['rcept_no']} | {r['reason']}" for r in res["per_doc"])
+        context += "\n" + "\n".join(
+            f"접수번호 {r['rcept_no']} | {c['field']} | 정정전 {c['before']} | 정정후 {c['after']}"
+            for r in res["per_doc"] for c in r.get("changes", []))
+    _REQ["audit_context"] = context
     if not clova_available():
         return {"question_id": question_id, "question": question,
                 "retrieved_context": context,
@@ -2867,8 +2980,19 @@ def answer_aggregate(question_id, question, corp, ret, trace):
     model_trace = check_subtitle(model_trace, trace)
     anchors = build_anchors(context, question, (), (), extra_terms=[
         r.get("rcept_no", "") for r in (res.get("rows") or res.get("per_doc") or [])])
+    anchors.update(f"{v}건" for v in (res.get("counts") or {}).values())
+    anchors.update((res.get("counts") or {}).keys())
     ans = anchor_filter_answer(ans, anchors, trace, context)
     anchor_report_trace(model_trace, anchors, trace, context)
+    if kind == "distinct":
+        # 모델이 최다 사유만 쓰고 건수를 생략해도 코드 집계는 빠지지 않는다.
+        counts = [f"{k}: {v}건" for k, v in res["counts"].items()]
+        normalized = re.sub(r"[*_`\s]", "", ans)
+        if not all(re.sub(r"\s", "", line) in normalized for line in counts):
+            ans += "\n\n[집계 내역]\n" + "\n".join(counts)
+            ans += (f"\n조건에 맞는 문서 {res['n_docs']}건, 사유 확인 {res['n_parsed']}건, "
+                    f"사유 미확인 {res['missing']}건.")
+            trace.append("[집계-보완] 모델이 생략한 유형별 건수를 코드 집계 내역으로 병기")
     trace.append("[5] 집계 경로 서술 생성 완료")
     return {"question_id": question_id, "question": question,
             "retrieved_context": context,
@@ -2882,31 +3006,50 @@ def answer_question(question_id: str, question: str) -> dict:
         return answer_boundary(question_id, question)   # 생성 호출 없음
     if _PII_ASK_RE.search(question):
         return answer_refusal(question_id, question, REFUSAL_PII)
+    ret = get_retriever()
+    companies = ret.route(question)
+    _REQ["chain_loaded"] = bool(getattr(ret, "chain_loaded", False))
+    if len(companies) == 1 and os.environ.get("USE_DISCLOSURE_TOOLS", "1") != "0":
+        tool = disclosure_tools.run(question, companies[0])
+        if tool:
+            _REQ["evidence_hits"] = [(r, 1.0) for r in tool.sources]
+            _REQ["audit_subject"] = tool.subject
+            _REQ["audit_result"] = tool.result
+            _REQ["audit_limit"] = tool.limitation
+            _REQ["audit_exclusions"] = tool.exclusions
+            _REQ["audit_basis"] = tool.basis
+            trace += ["[서식 도구] " + tool.subject, "[산출 결과] " + tool.result,
+                      "[확인 한계] " + tool.limitation]
+            return {"question_id": question_id, "question": question,
+                    "retrieved_context": build_context(_REQ["evidence_hits"]),
+                    "think_trace": merge_trace("", trace), "answer": tool.answer}
     hops = owner_hops(question)
     if hops >= 2:
-        trace.append(f"[0] 지배구조를 {hops}단계 거슬러 묻는 질문 — 각 단계를 순서대로 "
+        trace.append(f"[0] 지배구조를 {hops}단계 거슬러 묻는 질문 : 각 단계를 순서대로 "
                      f"밝히고 마지막 단계의 주체와 지분율을 답해야 한다")
     _REQ["owner_hops"] = hops
     opinion_part = bool(_OPINION_PART_RE.search(question))
     if opinion_part:
-        trace.append("[0] 사실 질문에 수준 평가 요구가 섞임 — 사실만 답하고 평가는 분리 고지")
+        trace.append("[0] 사실 질문에 수준 평가 요구가 섞임 : 사실만 답하고 평가는 분리 고지")
     _REQ["opinion_part"] = opinion_part
     scope, oor_label = period_scope(question)
     if scope == "out":
         return answer_refusal(question_id, question, REFUSAL_OUT_OF_PERIOD)
     if scope == "mixed":
         trace.append(f"[0] 수집 범위 밖 시점({oor_label})과 범위 안 시점이 함께 요구됨 "
-                     f"— 범위 안 부분만 답하고 밖은 고지로 분리")
-    ret = get_retriever()
-    companies = ret.route(question)
+                     f": 범위 안 부분만 답하고 밖은 고지로 분리")
     trace.append(f"[1] 회사 라우팅: {companies if companies else '탐지 실패'}")
 
     if len(companies) >= 2:
         return answer_multi_company(question_id, question, companies, ret, trace)
 
     if not companies:
-        return answer_refusal(question_id, question, REFUSAL_OUT_OF_UNIVERSE,
-                              extra_log=trace)
+        _REQ['audit_subject'] = '조회 대상 확인 필요'
+        _REQ['audit_result'] = '질문에서 조회 가능한 회사 식별자를 확정하지 못해 다른 회사의 수치로 대체하지 않았다'
+        _REQ['audit_limit'] = '회사 미지정, 명칭 불일치, 수록 대상 밖 여부를 현재 라우팅 결과만으로 구분할 수 없다'
+        return {'question_id':question_id, 'question':question, 'retrieved_context':'',
+                'think_trace':merge_trace('',trace),
+                'answer':'질문에서 조회할 회사를 확정하지 못했습니다. 회사명과 대상 공시의 날짜 또는 접수번호를 지정해 주세요. 특정 사건의 원인이나 금액을 다른 회사의 자료로 대체하지 않았습니다.'}
 
     # 집계 질의는 검색을 타지 않는다. 도구가 값을 못 뽑으면 아래 검색 경로로 폴백.
     if use_aggregate_tools() and aggregate_intent(question):
@@ -2931,13 +3074,13 @@ def answer_question(question_id: str, question: str) -> dict:
     _REQ["counted"] = (count_disclosures(question, companies[0], ret)
                        if COUNT_QUESTION_RE.search(question) else None)
     if _REQ["counted"]:
-        trace.append(f"[3!] 건수 질문 — 코드 집계 {len(_REQ['counted'])}건: "
+        trace.append(f"[3!] 건수 질문 : 코드 집계 {len(_REQ['counted'])}건: "
                      + ", ".join(no for no, _ in _REQ["counted"]))
     trace.append(f"[2] 섹션 사전확률 발동: {res['priors'] if res['priors'] else '없음'}")
     trace.append(f"[3] BM25+사전확률 검색: {len(hits)}개 청크 (top 점수 "
                  + ", ".join(f"{s:.1f}" for _, s in hits[:3]) + ")")
     if not getattr(ret, "chain_loaded", False):
-        trace.append("[!] 정정 체인 데이터 미로딩 — 정정 판정 불가")
+        trace.append("[!] 정정 체인 데이터 미로딩 : 정정 판정 불가")
     sup = [rec["rcept_no"] for rec, _ in hits if rec.get("superseded_by")]
     if sup:
         trace.append(f"[4] 정정 대체 원본 감지(감점 적용): {sorted(set(sup))}")
@@ -2945,7 +3088,7 @@ def answer_question(question_id: str, question: str) -> dict:
     if not hits:
         return {
             "question_id": question_id, "question": question,
-            "retrieved_context": "", "think_trace": "\n".join(trace + ["[5] 관련 청크 없음 → 한계 고지"]),
+            "retrieved_context": "", "think_trace": merge_trace('',trace + ["[5] 관련 청크 없음 → 한계 고지"]),
             "answer": FALLBACK_NO_INFO,
         }
 
@@ -2954,7 +3097,7 @@ def answer_question(question_id: str, question: str) -> dict:
         for i, (rec, _) in enumerate(hits, 1))
 
     if clova_available():
-        trace.append("[3+] HyperCLOVA X 2단계 생성 호출(추출→코드계산→서술)")
+        trace.append("[3+] 구조 계산 우선, 필요 시 HyperCLOVA X 추출·서술 경로 진입")
         try:
             model_trace, ans = answer_single_company(question, hits, trace)
             if not ans:
@@ -2970,6 +3113,7 @@ def answer_question(question_id: str, question: str) -> dict:
         ans += PERIOD_PARTIAL_NOTE.format(rng=CORPUS_RANGE)
     if opinion_part and ans:
         ans += OPINION_PARTIAL_NOTE
+    context = build_context(response_evidence(hits))
     return {"question_id": question_id, "question": question,
             "retrieved_context": context,
             "think_trace": merge_trace(model_trace, trace), "answer": ans}

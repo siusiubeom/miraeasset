@@ -23,7 +23,7 @@ _cache = {}          # question_id → response dict
 _cache_lock = threading.Lock()
 
 
-# 실패 응답에 붙이는 표식 — 이 응답은 캐시하지 않는다.
+# 실패 응답에 붙이는 표식 : 이 응답은 캐시하지 않는다.
 # 주최측은 타임아웃·5xx에서 최대 2회 재시도한다(규격 2-3). 실패를 캐시하면
 # 재시도가 같은 실패를 돌려받아 재시도가 무의미해진다. ngrok 경유에서 502·503이
 # 실제로 관측됐으므로 가정이 아니다.
@@ -59,13 +59,18 @@ def safe_answer(question_id: str, question: str) -> dict:
 
 
 class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
     def _send_json(self, obj, status=200):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("Connection", "close")
+        self.close_connection = True
         self.end_headers()
         self.wfile.write(body)
+        self.wfile.flush()
 
     def do_GET(self):
         url = urlparse(self.path)
@@ -81,6 +86,7 @@ class Handler(BaseHTTPRequestHandler):
             qs = parse_qs(url.query, encoding="cp949", errors="replace")
         qid = (qs.get("question_id") or [""])[0]
         question = (qs.get("question") or [""])[0]
+        self.log_message("received question_id=%r", qid)
         if not question:
             self._send_json({"question_id": qid, "question": "", "retrieved_context": "",
                              "think_trace": "missing 'question' parameter", "answer": ""})
@@ -94,7 +100,7 @@ class Handler(BaseHTTPRequestHandler):
         t0 = time.time()
         resp = safe_answer(qid, question)
         self.log_message("answered %s in %.1fs", qid, time.time() - t0)
-        # 실패 응답은 캐시하지 않는다 — 재시도가 같은 실패를 받으면 안 된다.
+        # 실패 응답은 캐시하지 않는다 : 재시도가 같은 실패를 받으면 안 된다.
         if qid and not resp.pop(_FAIL, False):
             with _cache_lock:
                 _cache[qid] = resp

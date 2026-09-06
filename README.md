@@ -131,3 +131,11 @@ python baseline/chunk_docs.py             # chunks/ (검색이 읽는 산출물)
 
 - [공시Agent_대회요약.md](공시Agent_대회요약.md) — 과제·데이터 분석 요약
 - [평가API_규격_및_QA.md](평가API_규격_및_QA.md) — 평가 규격 및 운영진 Q&A 정리
+
+## 현재 평가 기록
+
+- [최종 회계·KAM 평가](FOLLOWUP_EVALUATION.md): 16문항 통과 및 미해결 범위.
+- `baseline/hard20_questions.json`: 고난도 20문항.
+- `baseline/regression_questions.json`: 이전 실험에서 추린 추가 회귀 질문 45개.
+- `baseline/followup_release_3runs.json`, `baseline/followup_source_fix_3runs.json`: 판정에 사용한 원본 응답.
+- `baseline/followup_review.json`: 문항별 판정, 응답 해시 및 실패 검토 기록.

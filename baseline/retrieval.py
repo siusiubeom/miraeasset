@@ -33,7 +33,7 @@ SECTION_PRIORS = [
     (r"자기주식|자사주",                    r"자기주식", 0.6),
     (r"유상증자|전환사채|신주인수권|교환사채|\bCB\b|\bBW\b|\bEB\b|자금조달", r"증자|사채", 0.5),
     (r"소송",                              r"소송", 0.6),
-    # 주석에만 있는 항목들 — 목적적합성 판정을 프리어가 맡는다
+    # 주석에만 있는 항목들 : 목적적합성 판정을 프리어가 맡는다
     (r"자본금|액면|납입자본|주식발행초과금",   r"자본금", 0.6),
     (r"우발|충당부채|채무보증|지급보증",      r"우발|충당", 0.6),
     (r"특수관계자|계열사\s?거래",            r"특수관계자", 0.6),
@@ -52,14 +52,8 @@ SECTION_PRIORS = [
 
 SUPERSEDED_PENALTY = 0.55  # 정정으로 대체된 원본 청크의 점수 배율
 
-# ── 증거 위계 가중치 (감사기준서 500) ────────────────────────────────────────
-# 정정 감점이 위계의 시점 축이라면 이쪽은 문서 유형 축이다. BM25는 지표어가
-# 조밀한 서술문을 표보다 위로 올리는데, 정확한 값은 표에만 있다.
-# K-IFRS에서 주석(tier 3)은 재무제표의 일부이자 감사의견의 대상이다. 반면
-# 요약재무정보(tier 4)는 감사받은 수치를 사업보고서에 옮겨 적은 것이라 감사
-# 대상이 아니다. 신뢰성 축에서 3은 2와 4 사이에 온다.
-# 목적적합성(질문이 그 절을 요구하는가)은 이 가중치가 아니라 SECTION_PRIORS와
-# 지정형 경로가 맡는다 — 감사기준 500이 적합성을 두 축으로 가르는 그대로다.
+# 문서 유형별 검색 가중치. 숫자는 프로젝트 휴리스틱이며 감사기준의 계수가 아니다.
+# 질문과의 관련성은 SECTION_PRIORS와 절 지정 경로에서 별도로 처리한다.
 _DEFAULT_TIER_WEIGHT = {1: 1.5, 2: 1.4, 3: 1.35, 4: 1.2, 5: 0.7, 6: 0.6}
 
 
@@ -97,7 +91,7 @@ NUMERIC_QUESTION_RE = re.compile(
 
 
 # 경영진단·부문 서술 절에만 있는 정확한 수치가 있다(부문별 실적, 기재 비중).
-# 이 유형의 질문에서는 서술형(tier 5) 강등을 완화한다 — 강등하면 답이 사라진다.
+# 이 유형의 질문에서는 서술형(tier 5) 강등을 완화한다 : 강등하면 답이 사라진다.
 NARRATIVE_OK_QUESTION_RE = re.compile(r"부문|세그먼트|비중|사업부")
 TIER5_RELAXED = 0.9
 
@@ -200,10 +194,10 @@ class Retriever:
                     self.supersedes.setdefault(corr_rcept, []).append(orig["rcept_no"])
             self.chain_loaded = bool(self.superseded)
             if not self.chain_loaded:
-                print(f"[warn] {rep_path} 의 corr_matches에 매칭된 정정 체인이 0건 — "
+                print(f"[warn] {rep_path} 의 corr_matches에 매칭된 정정 체인이 0건 : "
                       "정정 감점·정정본 우선 판정이 비활성 상태입니다.", file=sys.stderr)
         else:
-            print(f"[warn] {rep_path} 없음 — 정정 체인 미로딩. 정정 감점"
+            print(f"[warn] {rep_path} 없음 : 정정 체인 미로딩. 정정 감점"
                   f"(SUPERSEDED_PENALTY={SUPERSEDED_PENALTY})과 정정 대체 원본 감지가 "
                   "동작하지 않습니다. preprocess/build_company_md.py 를 실행해 생성하십시오.",
                   file=sys.stderr)
@@ -237,7 +231,7 @@ class Retriever:
         for r in recs:  # 정정으로 대체된 원본임을 청크에 표시 (답변 생성 시에도 활용)
             r["superseded_by"] = self.superseded.get(r["rcept_no"], [])
             r["supersedes"] = self.supersedes.get(r["rcept_no"], [])
-            # 증거 위계는 로드 시 계산해 붙인다. 재청킹하지 않는다 — 정규식
+            # 증거 위계는 로드 시 계산해 붙인다. 재청킹하지 않는다 : 정규식
             # 몇 개라 로드 비용이 무시할 만하고, 규칙을 고칠 때마다 청크를 다시
             # 만들 이유가 없다. 청킹에 굽고 싶으면 chunk_docs.py에서 같은
             # 모듈(evidence_tier.annotate)을 부르면 된다.
@@ -264,7 +258,7 @@ class Retriever:
                 if sec_re.search(target):
                     mult *= 1.0 + w
             # 질문에 연도가 있으면 그 연도의 문서를 우대. 정기공시는 보고서 '기간'
-            # (report_nm 예: '사업보고서 (2025.12)')으로만 판정 — 접수연도로 판정하면
+            # (report_nm 예: '사업보고서 (2025.12)')으로만 판정 : 접수연도로 판정하면
             # 2025년에 접수된 FY2024 사업보고서가 잘못 우대된다. 수시·지분공시는 접수연도가 사건연도.
             if years:
                 if rec["group"] == "periodic":
@@ -305,7 +299,7 @@ class Retriever:
             target = rec["section_path"] + " " + rec["report_nm"]
             return any(sec_re.search(target) for sec_re in strong)
 
-        # 지정형 경로 — 지표어가 절에 매핑되면 그 절 안에서만 순위를 매긴다.
+        # 지정형 경로 : 지표어가 절에 매핑되면 그 절 안에서만 순위를 매긴다.
         # 매핑이 없거나 후보가 0건이면 즉시 탐색형(전체 검색)으로 되돌아간다.
         route_pat, route_word = ((None, None) if not use_section_route()
                                  else resolve_sections(question))

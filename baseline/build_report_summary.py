@@ -35,7 +35,7 @@ def main():
     orphan = {k: v for k, v in rep["corr_matches"].items()
               if v["targets"] and not v["matched"]}
     print(f"\n  target_found_but_no_original 상세 ({len(orphan)}건) "
-          f"— 정정본은 있으나 원본이 코퍼스 밖 (T6 한계고지 소재)")
+          f": 정정본은 있으나 원본이 코퍼스 밖 (T6 한계고지 소재)")
     by_corp = Counter(corp_of.get(k, "?") for k in orphan)
     for corp, n in by_corp.most_common():
         print(f"    {corp}: {n}건")
@@ -44,7 +44,7 @@ def main():
 
     nt = {k: v for k, v in rep["corr_matches"].items() if not v["targets"]}
     if nt:
-        print(f"\n  target_extraction_failed 상세 ({len(nt)}건) — 본문에서 정정 대상일 미추출")
+        print(f"\n  target_extraction_failed 상세 ({len(nt)}건) : 본문에서 정정 대상일 미추출")
         for corp, n in Counter(corp_of.get(k, "?") for k in nt).most_common(10):
             print(f"    {corp}: {n}건")
 
@@ -69,7 +69,7 @@ def main():
         print("  상위 5:", ", ".join(f"{k} {v:,}" for k, v in order[:5]))
         print("  하위 5:", ", ".join(f"{k} {v:,}" for k, v in order[-5:]))
     else:
-        print("\n[4] chunks 디렉터리 없음 — chunk_docs.py 미실행")
+        print("\n[4] chunks 디렉터리 없음 : chunk_docs.py 미실행")
 
     # 5) 정정 체인이 잡힌 회사 수
     chain_corps = {corp_of.get(k, "?") for k, v in rep["corr_matches"].items() if v["matched"]}

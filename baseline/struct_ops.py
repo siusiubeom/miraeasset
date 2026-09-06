@@ -1,23 +1,29 @@
 # -*- coding: utf-8 -*-
-"""구조 연산 — 셀 구조에서 유효한 연산을 전부 수행한다.
-
-질문에서는 명사(회사·지표·연도·항목)만 본다. 합계·차액·비율 의도는
-판정하지 않는다. 어떤 연산이 유효한지는 표 구조가 결정한다:
-
-  diff   같은 (row_label, col_label, unit), 다른 시점  → 후 − 전 (부호 유지)
-  sum    같은 (doc, table, 시점, row_label, unit)의 동종 하위 라벨 → 합산
-  ratio  같은 (table, 시점, unit, row_label)에 부분 열 + 전체 열 → 부분/전체
-  ratio2 전체 열 없음 + 부분들의 합이 같은 문서군 총액과 0.1% 이내 일치
-         → 부분합이 곧 전체 (검산 통과 시에만)
-  단위가 다른 셀끼리는 어떤 연산도 하지 않는다.
-"""
+"""셀의 라벨·기간·단위로 합계, 차이, 비율 후보를 계산한다. ratio2는 부분합과 총액의 오차를 검사한다."""
 import re
 from collections import namedtuple
 from decimal import Decimal
 
 Derivation = namedtuple("Derivation", "kind desc value unit docs")
 
-# 동종 하위 라벨 — 서식 표에서 이 집합 안의 라벨들만 합산 대상이다
+
+def render_arithmetic(derivations):
+    """합계·차감만 있는 결과는 값과 부호에서 직접 서술한다."""
+    if not derivations or any(d.kind not in {"sum", "diff"} for d in derivations):
+        return None
+    lines = []
+    for d in derivations:
+        lines.append(d.desc)
+        if d.kind == "diff":
+            direction = "증가" if d.value > 0 else "감소" if d.value < 0 else "변동 없음"
+            lines.append(f"후시점에서 전시점을 뺀 결과: {_fmt(abs(d.value))}{d.unit} {direction}.")
+            if d.desc.startswith("차감(합계 "):
+                lines.append("총액 차이가 0이므로 구성항목 변화는 총액에서 완전히 상쇄됩니다."
+                             if d.value == 0 else
+                             "총액에 위 잔차가 남으므로 구성항목 변화가 완전히 상쇄된 것은 아닙니다.")
+    return "\n".join(lines)
+
+# 동종 하위 라벨 : 서식 표에서 이 집합 안의 라벨들만 합산 대상이다
 _HOMOG_GROUPS = ({"보통주식", "기타주식"}, {"보통주식", "우선주식"},
                  {"보통주식", "기타주식", "우선주식"})
 _STOPWORDS = {"부문", "합계", "총계", "전체", "기준", "당기", "전기"}
@@ -34,13 +40,13 @@ def _norm(s):
 
 
 def question_entities(question):
-    """질문의 명사 신호 — 지표어·항목어·부문어. 동사·의도는 안 본다."""
+    """질문의 명사 신호 : 지표어·항목어·부문어. 동사·의도는 안 본다."""
     q = _norm(question)
     return q
 
 
 def question_periods(question):
-    """질문이 지목한 시점 — 연월('YYYYMM')과 연도('YYYY'). 명사 추출이다."""
+    """질문이 지목한 시점 : 연월('YYYYMM')과 연도('YYYY'). 명사 추출이다."""
     q = question or ""
     yms = [f"{y}{int(m):02d}" for y, m in
            re.findall(r"(20\d\d)\s*년\s*(\d{1,2})\s*월", q)]
@@ -50,7 +56,7 @@ def question_periods(question):
 
 def _period_match(period, yms, years):
     p = str(period or "")
-    if yms:   # 연월이 지목되면 연월로만 거른다 — 연도로 넓히면 7월 공시가 섞인다
+    if yms:   # 연월이 지목되면 연월로만 거른다 : 연도로 넓히면 7월 공시가 섞인다
         return any(p.startswith(ym) or (len(p) == 4 and p == ym[:4])
                    for ym in yms)
     if years:
@@ -64,7 +70,7 @@ def _row_relevant(row_label, qn):
         return False
     if r in qn:
         return True
-    # "취득예정금액" vs 질문 "취득예정금액을" — 부분 포함이면 위에서 잡힌다.
+    # "취득예정금액" vs 질문 "취득예정금액을" : 부분 포함이면 위에서 잡힌다.
     # 반대로 질문이 축약형("매출 비중")이면 라벨의 머리 2자 이상 일치를 본다.
     return len(r) >= 3 and r[:2] in qn and r.rstrip("액") in qn
 
@@ -84,7 +90,7 @@ def _pct(num, den):
 
 
 def _den_score(label):
-    """분모 후보 순위 — 최하단이 '전체·전사'인 열이 '부문 합계'보다 바깥이다."""
+    """분모 후보 순위 : 최하단이 '전체·전사'인 열이 '부문 합계'보다 바깥이다."""
     s = 0
     if re.search(r"전\s?체|전사", label or ""):
         s += 2
@@ -103,7 +109,7 @@ def derive(cells, question):
         return []
     out = []
 
-    # ── sum: 서식 표의 동종 하위 라벨 (문서·표·시점·행·단위별) ────────────
+    # sum: 서식 표의 동종 하위 라벨 (문서·표·시점·행·단위별)
     sums = {}   # (doc_id, table_id, period, row_label, unit) → (합, 셀들)
     groups = {}
     for c in rel:
@@ -124,7 +130,7 @@ def derive(cells, question):
                 + f" = {_fmt(total)}{unit or ''}",
                 total, unit, [doc]))
 
-    # ── diff: 같은 (행, 열, 단위), 다른 시점 — 후 − 전, 부호 유지 ─────────
+    # diff: 같은 (행, 열, 단위), 다른 시점 : 후 − 전, 부호 유지
     series = {}
     for c in rel:
         series.setdefault((c.row_label, c.col_label, c.unit), {}) \
@@ -142,7 +148,7 @@ def derive(cells, question):
             f"{unit or ''}",
             d, unit, sorted({a.doc_id, b.doc_id})))
 
-    # ── diff of sums: 합산 결과끼리도 같은 (행, 단위) 다른 시점이면 차감 ──
+    # diff of sums: 합산 결과끼리도 같은 (행, 단위) 다른 시점이면 차감
     sum_series = {}
     for (doc, _t, period, row, unit), (total, cs) in sums.items():
         sum_series.setdefault((row, unit), {}).setdefault(period, (total, doc))
@@ -158,7 +164,7 @@ def derive(cells, question):
             f"{'+' if d >= 0 else '−'}{_fmt(abs(d))}{unit or ''}",
             d, unit, sorted({da, db})))
 
-    # ── ratio: 행렬 표에서 부분 열 / 전체 열 ─────────────────────────────
+    # ratio: 행렬 표에서 부분 열 / 전체 열
     mat = {}
     for c in rel:
         if c.table_id.startswith("m"):
@@ -173,7 +179,7 @@ def derive(cells, question):
         # 전체 열이 여럿이면(부문 합계 vs 기업 전체 총계) 가장 바깥 것을 쓴다.
         den = max(totals, key=lambda c: (_den_score(c.col_label), -c.value))
         # 질문이 '전사·기업 전체'를 지목했으면(명사 매칭) 부문 합계는 분모가
-        # 아니다 — 부문 합계는 내부거래 제거 전이라 전사와 다르다(L4).
+        # 아니다 : 부문 합계는 내부거래 제거 전이라 전사와 다르다(L4).
         if re.search(r"전사|기업\s?전체", question or "") \
                 and _den_score(den.col_label) < 2:
             continue
@@ -207,9 +213,9 @@ def derive(cells, question):
 
 
 def ratio2(values, cells, row_hint=""):
-    """전체 열이 없을 때 — 부분들의 합이 문서군 총액과 일치하면 그 합이 전체.
+    """전체 열이 없을 때 : 부분들의 합이 문서군 총액과 일치하면 그 합이 전체.
 
-    values: (라벨, Decimal) 목록 — 서술문에서 추출된 부분 값들.
+    values: (라벨, Decimal) 목록 : 서술문에서 추출된 부분 값들.
     cells 의 서식 표 합계(동종 하위 라벨 합) 또는 total 셀들에서 총액 후보를
     만들어, |부분합 − 총액| / 총액 <= 0.1% 인 후보가 있을 때만 비율을 만든다.
     """
@@ -223,7 +229,7 @@ def ratio2(values, cells, row_hint=""):
                 {c.col_label} <= g for g in _HOMOG_GROUPS):
             per_doc.setdefault((c.doc_id, c.row_label, c.unit), Decimal(0))
             per_doc[(c.doc_id, c.row_label, c.unit)] += c.value
-    # 후보는 문서별 총액 각각과, 같은 (행, 단위)의 문서군 합 — 어느 쪽이든
+    # 후보는 문서별 총액 각각과, 같은 (행, 단위)의 문서군 합 : 어느 쪽이든
     # 부분합과 일치하면 그 부분들이 그 총액을 분할하는 구조다.
     candidates = []
     by_row = {}
@@ -245,7 +251,7 @@ def ratio2(values, cells, row_hint=""):
                 "ratio2",
                 f"비율({row}): {label} {_fmt(v)} / 부분합 {_fmt(psum)} = {pct}% "
                 f"(부분합이 문서 총액 {_fmt(tot)}{unit or ''}과 "
-                f"{(abs(psum - tot) / tot * 100):.4f}% 오차로 일치 — 전체로 인정)",
+                f"{(abs(psum - tot) / tot * 100):.4f}% 오차로 일치 : 전체로 인정)",
                 pct, "%", sorted(docs)))
         break   # 가장 먼저 검산을 통과한 총액 기준 하나만
     return out

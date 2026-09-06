@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""코퍼스 조회 도구 — 문제지 작성용.
+"""코퍼스 조회 도구 : 문제지 작성용.
 
 corpus/manifest.jsonl 을 읽어 보고서명 분포·회사별 요약·정정 밀도를 내고,
 CLI 로 보고서명/회사/기간 조회를 한다. 표준 라이브러리만 쓴다.
@@ -25,11 +25,11 @@ OUT_JSON = Path(__file__).resolve().parent / "corpus_map.json"
 TOP_REPORTS = 40
 TOP_CORRECTION = 15
 
-# 보고서명 정규화 — 대괄호 표기([기재정정], [첨부정정] 등)와 기준월 괄호를 걷어낸다.
+# 보고서명 정규화 : 대괄호 표기([기재정정], [첨부정정] 등)와 기준월 괄호를 걷어낸다.
 _BRACKET_RE = re.compile(r"\[[^\]]*\]")
 _PAREN_DATE_RE = re.compile(r"\s*\(\s*\d{4}\.\d{1,2}\s*\)")
 
-# 문제지에서 소재로 쓸 만한 공시 종류 — 있는지 반드시 확인한다.
+# 문제지에서 소재로 쓸 만한 공시 종류 : 있는지 반드시 확인한다.
 WATCH_REPORTS = (
     "전환사채권발행결정", "신주인수권부사채권발행결정",
     "교환사채권발행결정", "조건부자본증권발행결정",
@@ -49,7 +49,7 @@ def normalize_report(nm):
 
 
 def watch_key(nm):
-    """대조용 키 — 공백과 가운뎃점 변형을 흡수한다."""
+    """대조용 키 : 공백과 가운뎃점 변형을 흡수한다."""
     return re.sub(r"[\s·ㆍ・]", "", nm or "")
 
 
@@ -63,7 +63,7 @@ def fmt_dt(d):
     return (d[:4] + "-" + d[4:6] + "-" + d[6:]) if d and len(d) == 8 else (d or "")
 
 
-# ── [1] 보고서명 분포 ────────────────────────────────────────────────────────
+# [1] 보고서명 분포
 def report_distribution(recs):
     counts = Counter(normalize_report(r["report_nm"]) for r in recs)
     corr = Counter(normalize_report(r["report_nm"])
@@ -71,7 +71,7 @@ def report_distribution(recs):
     rows = [{"report": nm, "n": n, "n_correction": corr.get(nm, 0)}
             for nm, n in counts.most_common()]
 
-    # 관찰 대상은 부분일치로 찾는다 — 원문 표기가 조금씩 다르다.
+    # 관찰 대상은 부분일치로 찾는다 : 원문 표기가 조금씩 다르다.
     watch = []
     for target in WATCH_REPORTS:
         key = watch_key(target)
@@ -86,7 +86,7 @@ def report_distribution(recs):
     return rows, watch
 
 
-# ── [2] 회사별 요약 ──────────────────────────────────────────────────────────
+# [2] 회사별 요약
 def company_summary(recs):
     by_corp = defaultdict(list)
     for r in recs:
@@ -105,14 +105,14 @@ def company_summary(recs):
     return sorted(out, key=lambda d: -d["n_docs"])
 
 
-# ── [3] 정정 밀도 ────────────────────────────────────────────────────────────
+# [3] 정정 밀도
 def correction_density(summary):
     rows = [dict(r, correction_pct=round(100 * r["n_correction"] / r["n_docs"], 1))
             for r in summary if r["n_docs"]]
     return sorted(rows, key=lambda d: (-d["correction_pct"], -d["n_docs"]))
 
 
-# ── [4]~[6] 조회 ─────────────────────────────────────────────────────────────
+# [4]~[6] 조회
 def find_by_report(recs, needle):
     key = watch_key(needle)
     hits = [r for r in recs if key in watch_key(r["report_nm"])]
@@ -133,7 +133,7 @@ def timeline(recs, company, dt_from="", dt_to=""):
     return sorted(rows, key=lambda r: (r["rcept_dt"], r["rcept_no"]))
 
 
-# ── 출력 ─────────────────────────────────────────────────────────────────────
+# 출력
 def print_overview(rows, watch, summary, density, n_total):
     print("[0] 문서 {}건, 회사 {}개, 보고서명 종류 {}종\n".format(
         n_total, len(summary), len(rows)))
@@ -174,7 +174,7 @@ def print_overview(rows, watch, summary, density, n_total):
 
 def print_report_hits(by_corp, needle):
     total = sum(len(v) for v in by_corp.values())
-    print("[4] '{}' 부분일치 — {}건 / {}개사".format(needle, total, len(by_corp)))
+    print("[4] '{}' 부분일치 : {}건 / {}개사".format(needle, total, len(by_corp)))
     for name, rs in sorted(by_corp.items(), key=lambda kv: -len(kv[1])):
         print("\n  {} ({}건)".format(name, len(rs)))
         for r in rs:
@@ -187,7 +187,7 @@ def print_timeline(rows, company, dt_from, dt_to):
     span = ""
     if dt_from or dt_to:
         span = " {}~{}".format(fmt_dt(dt_from) or "처음", fmt_dt(dt_to) or "끝")
-    print("[5] {} 타임라인{} — {}건".format(company, span, len(rows)))
+    print("[5] {} 타임라인{} : {}건".format(company, span, len(rows)))
     if not rows:
         print("  해당 조건의 공시 없음")
         return
@@ -205,7 +205,7 @@ def print_timeline(rows, company, dt_from, dt_to):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="코퍼스 조회 — 문제지 작성용")
+    ap = argparse.ArgumentParser(description="코퍼스 조회 : 문제지 작성용")
     ap.add_argument("--report", help="보고서명 부분일치 조회")
     ap.add_argument("--company", help="회사 타임라인 조회")
     ap.add_argument("--from", dest="dt_from", default="", help="접수일 시작 (YYYYMMDD)")

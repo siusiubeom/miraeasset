@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""배포용 청크 압축 — processed/chunks/*.jsonl → *.jsonl.gz
+"""배포용 청크 압축 : processed/chunks/*.jsonl → *.jsonl.gz
 
 청크 원본은 1.5GB라 저장소에 넣을 수 없다. gzip으로 약 16%(240MB 안팎)까지
 줄어들고, retrieval.index_for()가 .jsonl이 없으면 .jsonl.gz를 읽는다.

@@ -2,7 +2,7 @@
 """CLOVA Studio v3 chat-completions 규격을 흉내내는 로컬 목 서버 (통합 검증용).
 
 실제 응답 스키마(status/result.message.content, 401 코드 40104 등)를 재현한다.
-생성 내용은 '근거 컨텍스트에서 질문 키워드 주변을 인용'하는 규칙 기반 — 파이프라인
+생성 내용은 '근거 컨텍스트에서 질문 키워드 주변을 인용'하는 규칙 기반 : 파이프라인
 배관(요청 포맷, 인증 헤더, 타임아웃, 파싱, 폴백)을 검증하는 용도이지 품질 평가용이 아니다.
 
 사용: py mock_clova.py [port=8099]   (서버측: CLOVA_ENDPOINT=http://127.0.0.1:8099/v3/chat-completions/HCX-005)
@@ -51,7 +51,7 @@ class Handler(BaseHTTPRequestHandler):
             parts = []
             for src, lines in picked:
                 parts.append(f"근거 공시({src})에 따르면:\n" + "\n".join("  " + l.strip() for l in lines))
-            content = "\n".join(parts) + "\n(모의 생성 응답 — 배관 검증용)"
+            content = "\n".join(parts) + "\n(모의 생성 응답 : 배관 검증용)"
         else:
             content = "제공된 공시에서 확인되지 않습니다. (모의 생성 응답)"
         self._json({"status": {"code": "20000", "message": "OK"},

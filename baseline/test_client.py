@@ -18,7 +18,7 @@ def fetch(url, timeout=300):
     except urllib.error.URLError as e:
         if not isinstance(getattr(e, "reason", None), ssl.SSLCertVerificationError):
             raise
-        print(f"  [경고] TLS 인증서 검증 실패({e.reason.verify_message}) — "
+        print(f"  [경고] TLS 인증서 검증 실패({e.reason.verify_message}) : "
               f"검증 없이 재시도합니다. 이 PC의 CA 저장소 문제입니다.")
         return urllib.request.urlopen(url, timeout=timeout, context=_CTX_INSECURE)
 

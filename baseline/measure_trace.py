@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""think_trace 품질 계량.
-
-눈으로 "산문이 됐다", "만점급이다"를 판단해 온 것을 숫자로 바꾼다. 개정 전후를
-같은 지표로 재야 개선인지 우연인지 구분된다. 표준 라이브러리만 사용한다.
+"""think_trace의 문체·식별자 휴리스틱 검사. 의미의 진위나 회계 정답 점수는 아니다.
 
 실행: python baseline/measure_trace.py <결과JSON> <라벨>
 입력 JSON: [{"qid"|"question_id", "question", "think_trace", "answer"}, ...]
@@ -16,7 +13,7 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-# ── 기준선 (Küster 2024, 유럽 상장사 KAM 실측) ────────────────────────────────
+# 문헌에서 착안한 내부 비교값. 언어·표본·측정법이 달라 직접 성능 비교에 쓰지 않는다.
 BASE_BOILERPLATE = 55.0     # 정형구 비율 %, 목표 30 이하
 BASE_NUM_DENSITY = 2.0      # 수치 밀도 %, 목표 5 이상
 TARGET_BOILERPLATE = 30.0
@@ -27,7 +24,7 @@ NGRAM_N = 5                 # 정형구 판정 n-gram (어절)
 
 LOG_SEP = "---\n[시스템 로그]"
 
-# 시스템이 강제하는 고정 문구 — 정형구 집계에서 분리한다
+# 시스템이 강제하는 고정 문구 : 정형구 집계에서 분리한다
 FIXED_PHRASES = (
     "미래 실적 전망이나 투자 의견",
     "추출값과 계산값이 불일치해",
@@ -37,7 +34,7 @@ FIXED_PHRASES = (
     "조회된 공시에 해당 항목이",
 )
 
-RCEPT_RE = re.compile(r"\b\d{14}\b")
+RCEPT_RE = re.compile(r"(?<!\d)\d{14}(?!\d)")
 DATE_RE = re.compile(r"\b20\d\d[-.]\d{1,2}[-.]\d{1,2}\b|"
                      r"20\d\d\s*년\s*\d{1,2}\s*월(?:\s*\d{1,2}\s*일)?")
 REPORT_RE = re.compile(r"(?:\[기재정정\])?[가-힣A-Za-z·ㆍ]*보고서(?:\s*\([\d.]+\))?|"
@@ -62,7 +59,7 @@ def split_trace(t: str):
     if LOG_SEP in t:
         head, _, tail = t.partition(LOG_SEP)
         return head.strip(), tail.strip()
-    # 구분자 없이 코드 로그만 남은 경우 — 모델 산문은 0으로 본다
+    # 구분자 없이 코드 로그만 남은 경우 : 모델 산문은 0으로 본다
     if t.lstrip().startswith("[") and "회사 라우팅" in t:
         return "", t.strip()
     return t.strip(), ""
@@ -96,9 +93,11 @@ def measure_one(row):
     num_tokens = sum(1 for w in ws if NUM_TOKEN_RE.search(w))
     rejects = REJECT_RE.findall(prose)
     # 기각 서술의 진위: trace 산문이 든 접수번호가 시스템 로그에 실재하는가
-    log_rcepts = set(RCEPT_RE.findall(log))
-    fabricated = [no for no in RCEPT_RE.findall(prose)
-                  if rejects and no not in log_rcepts] if rejects else []
+    log_rcepts = set(RCEPT_RE.findall(log + "\n" + (row.get("retrieved_context") or "")))
+    # 번호가 원문에 존재하는지는 확인할 수 있지만 기각 문장 전체의 진위는 별도다.
+    fabricated = sorted({no for sentence in SENT_SPLIT_RE.split(prose)
+                         if REJECT_RE.search(sentence)
+                         for no in RCEPT_RE.findall(sentence) if no not in log_rcepts})
 
     # 소제목(v1.3 §2): 첫 줄이 짧은 한 구절이고 문장으로 끝나지 않아야 한다.
     first = prose.splitlines()[0].strip() if prose.strip() else ""
@@ -177,23 +176,23 @@ def main():
     print("\n[집계]")
     print(f"  정형구           {bp_all}%  (고정문구 제외 {bp_free}%) "
           f"기준선 {BASE_BOILERPLATE}% 목표 {TARGET_BOILERPLATE}% 이하 "
-          f"— {mark(bp_free <= TARGET_BOILERPLATE)}")
+          f": {mark(bp_free <= TARGET_BOILERPLATE)}")
     print(f"  수치 밀도        {agg['num_density_pct']}%  기준선 {BASE_NUM_DENSITY}% "
-          f"목표 {TARGET_NUM_DENSITY}% 이상 — {mark(agg['num_density_pct'] >= TARGET_NUM_DENSITY)}")
+          f"목표 {TARGET_NUM_DENSITY}% 이상 : {mark(agg['num_density_pct'] >= TARGET_NUM_DENSITY)}")
     print(f"  고유 식별자      평균 {agg['identifiers_mean']}개, "
           f"{MIN_IDENTIFIERS}개 미만 {agg['identifiers_below_min']}문항 "
-          f"— {mark(agg['identifiers_below_min'] == 0)}")
+          f": {mark(agg['identifiers_below_min'] == 0)}")
     print(f"  미래지향 표현    {agg['forward_hits_total']}회  목표 0 "
-          f"— {mark(agg['forward_hits_total'] == 0)}")
+          f": {mark(agg['forward_hits_total'] == 0)}")
     print(f"  기각 서술        {agg['rejection_rate_pct']}%  목표 50% 이상 "
-          f"— {mark(agg['rejection_rate_pct'] >= 50)}")
+          f": {mark(agg['rejection_rate_pct'] >= 50)}")
     print(f"  지어낸 기각      {agg['fabricated_rejections']}건  목표 0 "
-          f"— {mark(agg['fabricated_rejections'] == 0)}")
+          f": {mark(agg['fabricated_rejections'] == 0)}")
     if fabricated:
         for r in fabricated:
             print(f"      {r['qid']}: {r['fabricated_rejection']}")
     print(f"  소제목           {agg['subtitle_rate_pct']}%  목표 100% "
-          f"— {mark(agg['subtitle_rate_pct'] == 100)}")
+          f": {mark(agg['subtitle_rate_pct'] == 100)}")
     print(f"  결과 서술 비율   {agg['result_ratio_pct']}%")
     print(f"  길이             평균 {agg['sentences_mean']}문장, "
           f"{MAX_SENTENCES}문장 초과 {agg['over_length_count']}문항")

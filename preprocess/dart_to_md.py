@@ -14,7 +14,7 @@ import re
 from html.parser import HTMLParser
 from pathlib import Path
 
-# 내용까지 통째로 버릴 태그 (닫는 태그가 있는 것만 — void 태그를 넣으면 스택이 안 풀림)
+# 내용까지 통째로 버릴 태그 (닫는 태그가 있는 것만 : void 태그를 넣으면 스택이 안 풀림)
 _SKIP_CONTENT = {"style", "script", "head", "summary", "colgroup"}
 # 닫는 태그 없이 그 자체로 끝나는 태그 → 무시
 _VOID_TAGS = {"meta", "link", "col", "img", "input", "pgbrk", "hr"}
