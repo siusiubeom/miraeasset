@@ -1,17 +1,5 @@
 # -*- coding: utf-8 -*-
-"""표 직독 — 청크의 마크다운 표를 셀 단위로 읽는다.
-
-LLM 추출은 표를 '값: 스칼라'로 납작하게 만들어 라벨·시점·단위를 잃는다.
-표는 이미 (행, 열, 단위, 값) 구조이므로 코드가 그대로 읽는다. 연산은
-struct_ops가 이 셀들의 구조에서 결정한다 — 질문 표면어를 읽지 않는다.
-
-이 코퍼스의 표는 세 형태다.
-1. 서식 표(주요사항보고서): 행 라벨 "N. 항목명(단위)"이 두 칸 반복되고
-   하위 라벨(보통주식|기타주식|시작일...)이 오고 값이 반복된다.
-2. 부문 표(재무제표 주석): 헤더 행(들)이 열 라벨, "(단위 : X)" 줄이 단위.
-   전사|합계|총계|기업 전체 를 포함하는 열은 is_total.
-3. 다년도 표(요약재무정보): 열 라벨이 "제N기" 또는 연도.
-"""
+"""마크다운 서식표·부문표·다년도표에서 행, 열, 기간, 단위, 값을 추출한다."""
 import re
 from collections import namedtuple
 from decimal import Decimal, InvalidOperation
@@ -28,9 +16,9 @@ _DATE_CELL_RE = re.compile(r"\d{4}\s*년|\d{4}[-./]\d{1,2}")
 _NTH_RE = re.compile(r"제\s?(\d+)\s?기")
 _YEAR_RE = re.compile(r"(20\d\d)")
 _TOTAL_RE = re.compile(r"전사|합계|총계|전\s?체")
-# 당기/전기류 표 구분 마커 — base_year 대비 오프셋
+# 당기/전기류 표 구분 마커 : base_year 대비 오프셋
 _PERIOD_MARKS = (("당반기", 0), ("전반기", -1), ("당분기", 0), ("전분기", -1),
-                 ("당기", 0), ("전기", -1), ("전전기", -2))
+                 ("전전기", -2), ("당기", 0), ("전기", -1))
 
 KNOWN_UNITS = {"원", "천원", "백만원", "억원", "조원", "주", "%", "퍼센트", "명", "건"}
 
@@ -96,10 +84,13 @@ def parse_cells(text, doc_id, doc_dt, report_nm=""):
         cells = _cells_of(raw)
         if cells is None:
             flush()
+            mu = _UNIT_DECL_RE.search(raw)
+            if mu and mu.group(1) in KNOWN_UNITS:
+                cur_unit = mu.group(1)
             continue
         if _is_sep(cells):
             continue
-        # "| 당기 | (단위 : 백만원) |" 류 — 표 사이의 단위·시점 선언 행
+        # "| 당기 | (단위 : 백만원) |" 류 : 표 사이의 단위·시점 선언 행
         joined = " ".join(cells)
         mu = _UNIT_DECL_RE.search(joined)
         marked = next((off for mk, off in _PERIOD_MARKS if mk in joined
@@ -128,7 +119,7 @@ def _parse_block(rows, doc_id, doc_dt, tid, unit_decl, period, last_heads=None):
 
 
 def _parse_form(rows, doc_id, doc_dt, tid):
-    """서식 표 — 행 라벨(단위) + 하위 라벨 + 반복 값."""
+    """서식 표 : 행 라벨(단위) + 하위 라벨 + 반복 값."""
     out = []
     for r in rows:
         if len(r) < 2:
@@ -160,7 +151,7 @@ def _parse_form(rows, doc_id, doc_dt, tid):
 
 
 def _parse_matrix(rows, doc_id, doc_dt, tid, unit_decl, period, last_heads):
-    """행렬 표 — 누적 헤더 행 + 데이터 행.
+    """행렬 표 : 누적 헤더 행 + 데이터 행.
 
     원문은 표가 페이지·청크 경계에서 재개될 때 최상단 헤더만 반복하고 하단
     헤더(부문명 등)는 반복하지 않는다. 헤더가 퇴화(모든 열 라벨이 동일)한
@@ -174,21 +165,24 @@ def _parse_matrix(rows, doc_id, doc_dt, tid, unit_decl, period, last_heads):
         nums = [(j, _num(c)) for j, c in enumerate(r)]
         numeric = [j for j, v in nums if v is not None]
         if not numeric:
-            # 헤더 행 — 열마다 라벨을 쌓는다 (중복은 한 번만)
+            # 헤더 행 : 열마다 라벨을 쌓는다 (중복은 한 번만)
             if data_seen:
                 continue
             for j, c in enumerate(r):
                 if c and c not in heads[j]:
                     heads[j].append(c)
             continue
-        if not data_seen:   # 첫 데이터 행 — 헤더 확정 시점
+        if not data_seen:   # 첫 데이터 행 : 헤더 확정 시점
             bottoms = {h[-1] for j, h in enumerate(heads) if j > 0 and h}
             parts_b = {b for b in bottoms if not _TOTAL_RE.search(b)}
             # 퇴화: 부분 열을 구분하는 라벨이 하나도 없다(전부 총계류 반복)
             if not parts_b and last_heads.get(ncol):
                 heads = [list(h) for h in last_heads[ncol]]
+                # 헤더를 상속한 조각은 같은 논리 표다. 행 간 연산에서도 경계를 보존한다.
+                tid = last_heads.get((ncol, "table_id"), tid)
             elif len(parts_b) >= 2:
                 last_heads[ncol] = [list(h) for h in heads]
+                last_heads[(ncol, "table_id")] = tid
         data_seen = True
         row_label = _strip_label(r[0]) if r and _num(r[0]) is None else ""
         if not row_label:
@@ -200,7 +194,7 @@ def _parse_matrix(rows, doc_id, doc_dt, tid, unit_decl, period, last_heads):
             parts = heads[j] if j < ncol else []
             col_label = " ".join(parts) if parts else f"col{j}"
             # 상단 헤더("기업 전체 총계")는 열 전체에 걸쳐 반복된다. total 판정은
-            # 최하단 헤더(가장 구체적인 라벨)로만 한다 — "DX 부문"은 부분이다.
+            # 최하단 헤더(가장 구체적인 라벨)로만 한다 : "DX 부문"은 부분이다.
             is_total = bool(parts and _TOTAL_RE.search(parts[-1]))
             # 열 라벨의 제N기·연도는 열별 시점이다
             p = period

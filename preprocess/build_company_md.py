@@ -1,6 +1,6 @@
 """코퍼스 전체 → 회사별 종합 마크다운 빌드.
 
-산출물 (<repo>/processed/ — MIRAE_PROCESSED 환경변수로 변경 가능):
+산출물 (<repo>/processed/ : MIRAE_PROCESSED 환경변수로 변경 가능):
   docs/<doc_group>/<corp_name>/<doc_id>.md   문서 단위 마크다운 (원문 보존)
   companies/<listed_name>.md                 회사당 1개 종합 파일
                                              (헤더 + 문서목록 + 정정로그 + 전체 본문, 접수일순)
@@ -78,8 +78,8 @@ def convert_doc(rec: dict) -> dict:
             if not parts:
                 pdfs = [f.name for f in folder.glob("*.pdf")]
                 parts.append(f"> ⚠️ 이 문서는 원문 XML이 제공되지 않아 본문 변환에 실패했습니다. "
-                             f"원본 PDF: {', '.join(pdfs)} (경로: {rec['file_path']}) — 별도 처리 필요\n")
-                result["note"] = "변환 실패 — PDF 별도 처리 필요"
+                             f"원본 PDF: {', '.join(pdfs)} (경로: {rec['file_path']}) : 별도 처리 필요\n")
+                result["note"] = "변환 실패 : PDF 별도 처리 필요"
         else:
             files = _doc_files(folder, rec["rcept_no"])
             result["in_bytes"] = sum(f.stat().st_size for f in files)
@@ -97,11 +97,11 @@ def convert_doc(rec: dict) -> dict:
         header = (f"<!-- DOC id={doc_id} group={rec['doc_group']} subtype={rec.get('doc_subtype') or '-'} "
                   f"rcept_no={rec['rcept_no']} rcept_dt={rec['rcept_dt']} "
                   f"correction={'Y' if rec['is_correction'] else 'N'} corp={rec['corp_name']} -->\n"
-                  f"# 【{rec['listed_name']}】 {rec['report_nm']} — 접수 {rec['rcept_dt']} ({rec['rcept_no']})"
+                  f"# 【{rec['listed_name']}】 {rec['report_nm']} : 접수 {rec['rcept_dt']} ({rec['rcept_no']})"
                   f"{' 〔정정본〕' if rec['is_correction'] else ''}\n\n")
         out_path.write_text(header + body, encoding="utf-8")
         result["out_bytes"] = out_path.stat().st_size
-    except Exception as e:  # noqa: BLE001 — 개별 실패는 리포트로 수집
+    except Exception as e:  # noqa: BLE001 : 개별 실패는 리포트로 수집
         result["error"] = f"{type(e).__name__}: {e}"
     return result
 
@@ -122,12 +122,12 @@ def build_company_file(uni: dict, docs: list[dict], results: dict[str, dict],
 
     head = []
     head.append(f"<!-- COMPANY {name} stock={uni['stock_code']} corp_code={uni['corp_code']} -->")
-    head.append(f"# {name} — 공시 종합 문서")
+    head.append(f"# {name} : 공시 종합 문서")
     head.append("")
     head.append(f"- 법인명: {uni['corp_name']} | 영문명: {uni['corp_eng_name']} | 종목코드: {uni['stock_code']} | 시장: {uni['market']}")
     head.append(f"- 업종: {uni['industry']} | 섹터: {uni['sector']} | 상장일: {uni['listing_date']} | 결산월: {uni['fiscal_month']}")
     head.append(f"- 시가총액: {cap:,}억원 (2026-07-24 기준)")
-    head.append(f"- 수록 문서: {len(docs)}건 (정기 {uni['n_periodic']} / 주요사항 {uni['n_major']} / 거래소 {uni['n_exchange']} / 지분 {uni['n_holding']}) — 이 중 정정본 {n_corr}건")
+    head.append(f"- 수록 문서: {len(docs)}건 (정기 {uni['n_periodic']} / 주요사항 {uni['n_major']} / 거래소 {uni['n_exchange']} / 지분 {uni['n_holding']}) : 이 중 정정본 {n_corr}건")
     head.append("")
     head.append("## 문서 목록 (접수일순)")
     head.append("")
@@ -162,12 +162,12 @@ def build_company_file(uni: dict, docs: list[dict], results: dict[str, dict],
         if matched:
             line += " → 정정 대상: " + ", ".join(f"{x['report_nm']} ({x['rcept_no']}, {x['rcept_dt']})" for x in matched)
         elif targets:
-            line += f" → 대상 제출일 {', '.join(targets)} — **코퍼스에 원본 없음(수집기간 밖) 또는 미확인**"
+            line += f" → 대상 제출일 {', '.join(targets)} : **코퍼스에 원본 없음(수집기간 밖) 또는 미확인**"
         else:
             line += " → 대상 제출일 추출 실패 (본문 확인 필요)"
         head.append(line)
     head.append("")
-    head.append("> ⚠️ 정정본이 있는 문서의 수치는 폐기된 값일 수 있음 — 항상 최신 정정본을 우선할 것.")
+    head.append("> ⚠️ 정정본이 있는 문서의 수치는 폐기된 값일 수 있음 : 항상 최신 정정본을 우선할 것.")
     head.append("")
 
     with path.open("w", encoding="utf-8") as fp:
@@ -178,7 +178,7 @@ def build_company_file(uni: dict, docs: list[dict], results: dict[str, dict],
             if r.get("out") and not r.get("error"):
                 fp.write(Path(r["out"]).read_text(encoding="utf-8"))
             else:
-                fp.write(f"<!-- DOC id={d['doc_id']} 변환실패 -->\n# 【{name}】 {d['report_nm']} — 변환 실패: {r.get('error')}\n")
+                fp.write(f"<!-- DOC id={d['doc_id']} 변환실패 -->\n# 【{name}】 {d['report_nm']} : 변환 실패: {r.get('error')}\n")
     return path
 
 

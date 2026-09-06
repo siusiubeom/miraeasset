@@ -1,13 +1,5 @@
 # -*- coding: utf-8 -*-
-"""문장 단위 접지 검사 — "근거에 닿지 않는 문장은 내보내지 않는다".
-
-금지어 목록은 완결되지 않는다. 늘릴수록 오탐이 늘고(_OPINION_RE가 '1일 매수
-주문수량 한도'를 잡았다), 목록에 없는 새 표현은 그대로 나간다. 추측 표현은
-증상이고 원인은 근거 없는 주장이다. 근거를 강제하면 표현은 저절로 사라진다.
-
-SYSTEM_PROMPT §5("원본 정보를 생성하지 않는다")를 프롬프트 규칙이 아니라
-구조로 강제하는 층이다.
-"""
+"""문장의 수치·날짜·항목명을 근거와 대조한다. 앵커 일치는 문장 의미의 진위를 보장하지 않는다."""
 import re
 
 MIN_LEN = 30          # 이보다 짧은 문장은 연결·판정 문장으로 보고 통과시킨다
@@ -21,7 +13,7 @@ _DATE_RES = (
     re.compile(r"20\d\d\s*년\s*\d{1,2}\s*월(?:\s*\d{1,2}\s*일)?"),
     re.compile(r"\b20\d{6}\b"),
 )
-# 마크다운 표의 첫 열 — 서식 항목명이 여기 온다(취득예정금액, 처분목적 등)
+# 마크다운 표의 첫 열 : 서식 항목명이 여기 온다(취득예정금액, 처분목적 등)
 _TABLE_ROW_RE = re.compile(r"^\s*\|([^|\n]{2,40})\|", re.M)
 _HANGUL_TERM_RE = re.compile(r"[가-힣][가-힣0-9\s·ㆍ()]{3,}")
 # 숫자 비교는 쉼표를 걷어내고 한다
@@ -94,7 +86,7 @@ def build_anchors(context, question="", calc_values=(), hits=(), extra_terms=())
     return {a for a in anchors if a}
 
 
-# 한국어 금액 표기 — "11조 5,263억원", "333,605,938백만원", "3.00조원"
+# 한국어 금액 표기 : "11조 5,263억원", "333,605,938백만원", "3.00조원"
 _UNIT_SCALE = {"조": 10 ** 12, "억": 10 ** 8, "백만": 10 ** 6, "천": 10 ** 3}
 _COMPOSITE_AMOUNT_RE = re.compile(r"([\d,]+)\s*조\s*([\d,]+)\s*억")
 _SIMPLE_AMOUNT_RE = re.compile(r"([\d,]+(?:\.\d+)?)\s*(조|억|백만|천)\s*원?")
@@ -148,7 +140,7 @@ def is_anchored(sentence, anchors):
     return False
 
 
-# 한계 진술 — 근거가 없다고 밝히는 문장이다. 주장이 아니므로 접지를 요구하지
+# 한계 진술 : 근거가 없다고 밝히는 문장이다. 주장이 아니므로 접지를 요구하지
 # 않는다. 이것까지 지우면 "확인할 수 없습니다"가 통째로 사라진다.
 LIMITATION_RE = re.compile(
     r"확인(?:할\s?수\s?없|되지\s?않|이\s?불가)|기재(?:되어\s?있지\s?않|가\s?없)|"
@@ -160,7 +152,7 @@ def is_limitation(sentence):
     return bool(LIMITATION_RE.search(sentence or ""))
 
 
-# 근거를 인용하는 표지 — "주석에 기재되어 있습니다", "~로 인하여"
+# 근거를 인용하는 표지 : "주석에 기재되어 있습니다", "~로 인하여"
 QUOTE_MARK_RE = re.compile(
     r"기재되어|기재된|기재하고|기재됨|명시되어|명시된|적혀\s?있|"
     r"로\s?인하여|로\s?인한|에\s?따른|에\s?따라|사유는|사유가|"
@@ -183,7 +175,7 @@ def is_quoted_from(sentence, context):
 def unanchored_sentences(text, anchors, min_len=MIN_LEN, context=""):
     """min_len 이상인데 앵커를 하나도 포함하지 않는 문장들.
 
-    한계 진술은 제외한다 — 근거 없음을 밝히는 문장에 근거를 요구할 수 없다.
+    한계 진술은 제외한다 : 근거 없음을 밝히는 문장에 근거를 요구할 수 없다.
     """
     return [s for s in split_sentences(text)
             if len(s) >= min_len and not is_limitation(s)
@@ -191,7 +183,7 @@ def unanchored_sentences(text, anchors, min_len=MIN_LEN, context=""):
             and not is_quoted_from(s, context)]
 
 
-# 삭제 후 남는 번호·불릿 정리 — "2. 3."만 남은 목록을 내보내지 않기 위해
+# 삭제 후 남는 번호·불릿 정리 : "2. 3."만 남은 목록을 내보내지 않기 위해
 _LIST_MARK_RE = re.compile(r"^\s*(?:[-*•]|\d+[.)])\s*")
 
 

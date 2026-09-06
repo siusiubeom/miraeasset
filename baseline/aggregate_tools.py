@@ -1,14 +1,8 @@
 # -*- coding: utf-8 -*-
-"""집계 도구 — 검색 결과가 아니라 원장과 청크 전수를 직접 조작한다.
-
-집계 질의는 top-k 검색으로 구조적으로 풀리지 않는다. top-k를 키우면 청크
-재현율은 오르지만 집계 정확도는 오르지 않고, 노이즈가 쌓여 떨어지기도 한다.
-E05(가장 큰 건)·E06(유형별 집계)·E10(전체 나열)은 셋 다 검색은 성공했는데
-부분집합만 보고 틀렸다.
-
-count_disclosures와 같은 원리다. 세는 일은 코드가 원장에서 한다.
-"""
+"""manifest로 문서를 필터하고 본문에서 값과 사유를 집계한다. 조회 건수와 추출 성공 건수를 구분한다."""
+import gzip
 import json
+import os
 import re
 from collections import Counter, OrderedDict
 from pathlib import Path
@@ -17,9 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "corpus" / "manifest.jsonl"
 CHUNK_DIR = ROOT / "processed" / "chunks"
 
-# 값 셀 — "| 계약금액(원) | 314,500,000,000 | 314,500,000,000 |"
+# 값 셀 : "| 계약금액(원) | 314,500,000,000 | 314,500,000,000 |"
 _FIELD_VALUE_RE = "{field}\\s*\\(?[^)|\\n]*\\)?\\s*\\|\\s*([\\d,]+(?:\\.\\d+)?)"
-# 사유 셀 — "| 3. 정정사유 | 계약금액, 종료일 변경 | ..."
+# 사유 셀 : "| 3. 정정사유 | 계약금액, 종료일 변경 | ..."
 _REASON_RE = "{field}\\s*\\|\\s*([^|\\n]{{2,60}})"
 
 _manifest_cache = None
@@ -42,8 +36,13 @@ def chunks_by_rcept(corp):
         return _chunk_cache[corp]
     path = CHUNK_DIR / f"{corp}.jsonl"
     out = {}
-    if path.exists():
-        for line in path.open(encoding="utf-8"):
+    opener = path.open if path.exists() else None
+    if opener is None:
+        path = CHUNK_DIR / f"{corp}.jsonl.gz"
+        opener = lambda **kw: gzip.open(path, "rt", **kw)
+    # 검색과 구조 연산이 같은 배포 산출물을 읽는다. 파일 부재를 빈 원장으로 숨기지 않는다.
+    with opener(encoding="utf-8") as fh:
+        for line in fh:
             if not line.strip():
                 continue
             r = json.loads(line)
@@ -120,7 +119,7 @@ def parse_fx(text):
 def extremum(corp, filters=None, field="계약금액", mode="max", superseded=None):
     """조건에 맞는 문서 전수에서 field의 최대/최소 문서를 찾는다.
 
-    정정으로 대체된 원본은 제외한다 — 폐기된 값이 순위를 뒤집을 수 있다.
+    정정으로 대체된 원본은 제외한다 : 폐기된 값이 순위를 뒤집을 수 있다.
     """
     superseded = superseded or {}
     docs, rows = docs_for(corp, filters), []
@@ -152,15 +151,49 @@ def sort_by_date(corp, filters=None):
                       "is_correction": bool(m["is_correction"])} for m in docs]}
 
 
+def correction_changes(text):
+    """정정 전후 표의 바뀐 필드만 읽는다. 사유 문장을 임의로 분해하지 않는다."""
+    out, seen = [], set()
+    columns = None
+    for line in (text or "").splitlines():
+        if not line.strip().startswith("|"):
+            columns = None
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        compact = [re.sub(r"\s+", "", c) for c in cells]
+        if all(label in compact for label in ("정정항목", "정정전", "정정후")):
+            columns = tuple(compact.index(label) for label in ("정정항목", "정정전", "정정후"))
+            continue
+        if not columns or max(columns) >= len(cells):
+            continue
+        field, before, after = (cells[i] for i in columns)
+        if not field or re.fullmatch(r"[-:]+", field) or before == after:
+            continue
+        normalized = re.sub(r"\s+", "", field)
+        # 공시 서식의 필드명. 계약기간의 시작/종료일 변경은 같은 사유 범주다.
+        category = ("계약금액" if "계약금액" in normalized else
+                    "계약기간" if "계약기간" in normalized else None)
+        key = (field, before, after)
+        if key not in seen:
+            seen.add(key)
+            out.append(dict(field=field, category=category, before=before, after=after))
+    return out
+
+
 def distinct_count(corp, filters=None, field="정정사유"):
     """조건에 맞는 문서 전수에서 사유를 뽑아 유형별로 센다.
 
-    동수면 임의로 하나를 고르지 않는다 — 그 사실 자체가 답이다.
+    동수면 임의로 하나를 고르지 않는다 : 그 사실 자체가 답이다.
     """
     docs = docs_for(corp, filters)
     counter, per_doc, missing = Counter(), [], 0
+    occurrences, changed_docs = Counter(), 0
     for m in docs:
         text = _doc_text(corp, m["rcept_no"])
+        changes = correction_changes(text) if os.environ.get("USE_CORRECTION_OCCURRENCES", "1") != "0" else []
+        if changes:
+            changed_docs += 1
+            occurrences.update({c["category"] for c in changes if c["category"]})
         found = re.findall(_REASON_RE.format(field=re.escape(field)), text)
         seen = None
         for raw in found:
@@ -171,14 +204,21 @@ def distinct_count(corp, filters=None, field="정정사유"):
         if seen:
             counter[seen] += 1
             per_doc.append({"rcept_no": m["rcept_no"], "rcept_dt": m["rcept_dt"],
-                            "reason": seen})
+                            "reason": seen, "changes": changes})
         else:
             missing += 1
+            if changes:
+                per_doc.append({"rcept_no": m["rcept_no"], "rcept_dt": m["rcept_dt"],
+                                "reason": "정정사유 필드 미추출", "changes": changes})
     if not counter:
         return {"n_docs": len(docs), "n_parsed": 0, "counts": {}, "top": [],
-                "tied": False, "per_doc": [], "missing": missing}
+                "tied": False, "per_doc": per_doc, "missing": missing,
+                "change_occurrences": dict(occurrences), "n_change_docs": changed_docs,
+                "n_unresolved_change_docs": len(docs) - changed_docs}
     top_n = max(counter.values())
     top = sorted(k for k, v in counter.items() if v == top_n)
     return {"n_docs": len(docs), "n_parsed": sum(counter.values()),
             "counts": dict(counter.most_common()), "top": top, "top_n": top_n,
-            "tied": len(top) > 1, "per_doc": per_doc, "missing": missing}
+            "tied": len(top) > 1, "per_doc": per_doc, "missing": missing,
+            "change_occurrences": dict(occurrences), "n_change_docs": changed_docs,
+            "n_unresolved_change_docs": len(docs) - changed_docs}

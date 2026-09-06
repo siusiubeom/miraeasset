@@ -1,0 +1,1178 @@
+{
+ "aggregate": {
+  "label": "followup_release",
+  "n": 60,
+  "boilerplate_pct": 5.8,
+  "boilerplate_pct_excl_fixed": 5.8,
+  "num_density_pct": 14.9,
+  "identifiers_mean": 3.8,
+  "identifiers_below_min": 6,
+  "rejection_rate_pct": 0.0,
+  "fabricated_rejections": 0,
+  "result_ratio_pct": 7.7,
+  "forward_hits_total": 6,
+  "sentences_mean": 4.1,
+  "over_length_count": 0,
+  "subtitle_rate_pct": 90.0
+ },
+ "rows": [
+  {
+   "qid": "H01",
+   "subtitle": "삼성전자 자기주식 취득 결정",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 60,
+   "num_density": 26.7,
+   "identifiers": 7,
+   "identifier_list": [
+    "2024-11-18",
+    "20241115000375",
+    "20241118000171",
+    "20241118000328",
+    "2025-02-18"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 33.3,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H01",
+   "subtitle": "삼성전자 자기주식 취득 결정",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 60,
+   "num_density": 26.7,
+   "identifiers": 7,
+   "identifier_list": [
+    "2024-11-18",
+    "20241115000375",
+    "20241118000171",
+    "20241118000328",
+    "2025-02-18"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 33.3,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H01",
+   "subtitle": "삼성전자 자기주식 취득 결정",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 60,
+   "num_density": 26.7,
+   "identifiers": 7,
+   "identifier_list": [
+    "2024-11-18",
+    "20241115000375",
+    "20241118000171",
+    "20241118000328",
+    "2025-02-18"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 33.3,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H02",
+   "subtitle": "삼성전자 자기주식 취득 결정",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 60,
+   "num_density": 26.7,
+   "identifiers": 7,
+   "identifier_list": [
+    "2024-11-18",
+    "20241115000375",
+    "20241118000171",
+    "20241118000328",
+    "2025-02-18"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 33.3,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H02",
+   "subtitle": "삼성전자 자기주식 취득 결정",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 60,
+   "num_density": 26.7,
+   "identifiers": 7,
+   "identifier_list": [
+    "2024-11-18",
+    "20241115000375",
+    "20241118000171",
+    "20241118000328",
+    "2025-02-18"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 33.3,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H02",
+   "subtitle": "삼성전자 자기주식 취득 결정",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 60,
+   "num_density": 26.7,
+   "identifiers": 7,
+   "identifier_list": [
+    "2024-11-18",
+    "20241115000375",
+    "20241118000171",
+    "20241118000328",
+    "2025-02-18"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 33.3,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H03",
+   "subtitle": "삼성전자 취득 한도",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 36,
+   "num_density": 13.9,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-11-18",
+    "20241115000375",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H03",
+   "subtitle": "삼성전자 취득 한도",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 36,
+   "num_density": 13.9,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-11-18",
+    "20241115000375",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H03",
+   "subtitle": "삼성전자 취득 한도",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 36,
+   "num_density": 13.9,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-11-18",
+    "20241115000375",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H04",
+   "subtitle": "삼성전자 일일 매수 한도",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 28,
+   "num_density": 17.9,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-11-18",
+    "20241118000328",
+    "[기재정정]주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 2,
+   "over_length": false
+  },
+  {
+   "qid": "H04",
+   "subtitle": "삼성전자 일일 매수 한도",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 28,
+   "num_density": 17.9,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-11-18",
+    "20241118000328",
+    "[기재정정]주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 2,
+   "over_length": false
+  },
+  {
+   "qid": "H04",
+   "subtitle": "삼성전자 일일 매수 한도",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 28,
+   "num_density": 17.9,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-11-18",
+    "20241118000328",
+    "[기재정정]주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 2,
+   "over_length": false
+  },
+  {
+   "qid": "H05",
+   "subtitle": "삼성전자 처분과 소각 구분",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 52,
+   "num_density": 13.5,
+   "identifiers": 5,
+   "identifier_list": [
+    "2025-05-23",
+    "2025-07-25",
+    "20250523000601",
+    "20250725000794",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H05",
+   "subtitle": "삼성전자 처분과 소각 구분",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 52,
+   "num_density": 13.5,
+   "identifiers": 5,
+   "identifier_list": [
+    "2025-05-23",
+    "2025-07-25",
+    "20250523000601",
+    "20250725000794",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H05",
+   "subtitle": "삼성전자 처분과 소각 구분",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 52,
+   "num_density": 13.5,
+   "identifiers": 5,
+   "identifier_list": [
+    "2025-05-23",
+    "2025-07-25",
+    "20250523000601",
+    "20250725000794",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H06",
+   "subtitle": "삼성전자 목적별 취득 배분",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 48,
+   "num_density": 12.5,
+   "identifiers": 3,
+   "identifier_list": [
+    "2025-07-08",
+    "20250708000011",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H06",
+   "subtitle": "삼성전자 목적별 취득 배분",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 48,
+   "num_density": 12.5,
+   "identifiers": 3,
+   "identifier_list": [
+    "2025-07-08",
+    "20250708000011",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H06",
+   "subtitle": "삼성전자 목적별 취득 배분",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 48,
+   "num_density": 12.5,
+   "identifiers": 3,
+   "identifier_list": [
+    "2025-07-08",
+    "20250708000011",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H07",
+   "subtitle": "조회 대상 확인 필요",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 30,
+   "num_density": 0.0,
+   "identifiers": 0,
+   "identifier_list": [],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H07",
+   "subtitle": "조회 대상 확인 필요",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 30,
+   "num_density": 0.0,
+   "identifiers": 0,
+   "identifier_list": [],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H07",
+   "subtitle": "조회 대상 확인 필요",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 30,
+   "num_density": 0.0,
+   "identifiers": 0,
+   "identifier_list": [],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H08",
+   "subtitle": "삼성전자 별도·연결 손익 차이",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 60,
+   "num_density": 10.0,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-03-12",
+    "20240312000736",
+    "사업보고서 (2023.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 20.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H08",
+   "subtitle": "삼성전자 별도·연결 손익 차이",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 60,
+   "num_density": 10.0,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-03-12",
+    "20240312000736",
+    "사업보고서 (2023.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 20.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H08",
+   "subtitle": "삼성전자 별도·연결 손익 차이",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 60,
+   "num_density": 10.0,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-03-12",
+    "20240312000736",
+    "사업보고서 (2023.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 20.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H09",
+   "subtitle": "삼성전자 부문 비중 대조",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 39,
+   "num_density": 17.9,
+   "identifiers": 3,
+   "identifier_list": [
+    "2026-03-10",
+    "20260310002820",
+    "사업보고서 (2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 25.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H09",
+   "subtitle": "삼성전자 부문 비중 대조",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 39,
+   "num_density": 17.9,
+   "identifiers": 3,
+   "identifier_list": [
+    "2026-03-10",
+    "20260310002820",
+    "사업보고서 (2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 25.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H09",
+   "subtitle": "삼성전자 부문 비중 대조",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 39,
+   "num_density": 17.9,
+   "identifiers": 3,
+   "identifier_list": [
+    "2026-03-10",
+    "20260310002820",
+    "사업보고서 (2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 25.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H10",
+   "subtitle": "삼성전자 부문별 보고 (연결)",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 85,
+   "num_density": 20.0,
+   "identifiers": 6,
+   "identifier_list": [
+    "2025-05-15",
+    "20250515001922",
+    "2026-03-10",
+    "20260310002820",
+    "분기보고서 (2025.03)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 16.7,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H10",
+   "subtitle": "삼성전자 부문별 보고 (연결)",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 85,
+   "num_density": 20.0,
+   "identifiers": 6,
+   "identifier_list": [
+    "2025-05-15",
+    "20250515001922",
+    "2026-03-10",
+    "20260310002820",
+    "분기보고서 (2025.03)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 16.7,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H10",
+   "subtitle": "삼성전자 부문별 보고 (연결)",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 85,
+   "num_density": 20.0,
+   "identifiers": 6,
+   "identifier_list": [
+    "2025-05-15",
+    "20250515001922",
+    "2026-03-10",
+    "20260310002820",
+    "분기보고서 (2025.03)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 16.7,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H11",
+   "subtitle": "삼성E&A 정정 집계 단위",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 40,
+   "num_density": 12.5,
+   "identifiers": 3,
+   "identifier_list": [
+    "2023-07-27",
+    "20230727800739",
+    "단일판매ㆍ공급계약체결"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H11",
+   "subtitle": "삼성E&A 정정 집계 단위",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 40,
+   "num_density": 12.5,
+   "identifiers": 3,
+   "identifier_list": [
+    "2023-07-27",
+    "20230727800739",
+    "단일판매ㆍ공급계약체결"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H11",
+   "subtitle": "삼성E&A 정정 집계 단위",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 40,
+   "num_density": 12.5,
+   "identifiers": 3,
+   "identifier_list": [
+    "2023-07-27",
+    "20230727800739",
+    "단일판매ㆍ공급계약체결"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H12",
+   "subtitle": "삼성E&A 계약 판본 연결",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 72,
+   "num_density": 15.3,
+   "identifiers": 5,
+   "identifier_list": [
+    "2023-09-19",
+    "20230919800044",
+    "2024-12-05",
+    "20241205800252",
+    "단일판매ㆍ공급계약체결"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H12",
+   "subtitle": "삼성E&A 계약 판본 연결",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 72,
+   "num_density": 15.3,
+   "identifiers": 5,
+   "identifier_list": [
+    "2023-09-19",
+    "20230919800044",
+    "2024-12-05",
+    "20241205800252",
+    "단일판매ㆍ공급계약체결"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H12",
+   "subtitle": "삼성E&A 계약 판본 연결",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 72,
+   "num_density": 15.3,
+   "identifiers": 5,
+   "identifier_list": [
+    "2023-09-19",
+    "20230919800044",
+    "2024-12-05",
+    "20241205800252",
+    "단일판매ㆍ공급계약체결"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H13",
+   "subtitle": "에코프로비엠 전환 조건",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 38,
+   "num_density": 15.8,
+   "identifiers": 6,
+   "identifier_list": [
+    "2023-07-18",
+    "20230718000385",
+    "2024-07-24",
+    "2026-09-01",
+    "2028-06-24"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H13",
+   "subtitle": "에코프로비엠 전환 조건",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 38,
+   "num_density": 15.8,
+   "identifiers": 6,
+   "identifier_list": [
+    "2023-07-18",
+    "20230718000385",
+    "2024-07-24",
+    "2026-09-01",
+    "2028-06-24"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H13",
+   "subtitle": "에코프로비엠 전환 조건",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 38,
+   "num_density": 15.8,
+   "identifiers": 6,
+   "identifier_list": [
+    "2023-07-18",
+    "20230718000385",
+    "2024-07-24",
+    "2026-09-01",
+    "2028-06-24"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H14",
+   "subtitle": "에코프로비엠 전환 조건",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 40,
+   "num_density": 15.0,
+   "identifiers": 3,
+   "identifier_list": [
+    "2023-06-30",
+    "20230630000403",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H14",
+   "subtitle": "에코프로비엠 전환 조건",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 40,
+   "num_density": 15.0,
+   "identifiers": 3,
+   "identifier_list": [
+    "2023-06-30",
+    "20230630000403",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H14",
+   "subtitle": "에코프로비엠 전환 조건",
+   "has_subtitle": true,
+   "sentences": 3,
+   "words": 40,
+   "num_density": 15.0,
+   "identifiers": 3,
+   "identifier_list": [
+    "2023-06-30",
+    "20230630000403",
+    "주요사항보고서"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H15",
+   "subtitle": "OCI홀딩스 분할 전후 비교범위",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 56,
+   "num_density": 10.7,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-03-29",
+    "20240329003297",
+    "[기재정정]사업보고서 (2023.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H15",
+   "subtitle": "OCI홀딩스 분할 전후 비교범위",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 56,
+   "num_density": 10.7,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-03-29",
+    "20240329003297",
+    "[기재정정]사업보고서 (2023.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H15",
+   "subtitle": "OCI홀딩스 분할 전후 비교범위",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 56,
+   "num_density": 10.7,
+   "identifiers": 3,
+   "identifier_list": [
+    "2024-03-29",
+    "20240329003297",
+    "[기재정정]사업보고서 (2023.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H16",
+   "subtitle": "미래에셋증권 영업수익 계층",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 57,
+   "num_density": 10.5,
+   "identifiers": 3,
+   "identifier_list": [
+    "2026-05-15",
+    "20260515002972",
+    "[기재정정]사업보고서 (2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H16",
+   "subtitle": "미래에셋증권 영업수익 계층",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 57,
+   "num_density": 10.5,
+   "identifiers": 3,
+   "identifier_list": [
+    "2026-05-15",
+    "20260515002972",
+    "[기재정정]사업보고서 (2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H16",
+   "subtitle": "미래에셋증권 영업수익 계층",
+   "has_subtitle": true,
+   "sentences": 5,
+   "words": 57,
+   "num_density": 10.5,
+   "identifiers": 3,
+   "identifier_list": [
+    "2026-05-15",
+    "20260515002972",
+    "[기재정정]사업보고서 (2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H17",
+   "subtitle": "현대건설 계약별 표시 범위",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 69,
+   "num_density": 17.4,
+   "identifiers": 6,
+   "identifier_list": [
+    "2024-03-29",
+    "20240329003141",
+    "2025-10-17",
+    "20251017000151",
+    "[기재정정]사업보고서 (2023.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H17",
+   "subtitle": "현대건설 계약별 표시 범위",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 69,
+   "num_density": 17.4,
+   "identifiers": 6,
+   "identifier_list": [
+    "2024-03-29",
+    "20240329003141",
+    "2025-10-17",
+    "20251017000151",
+    "[기재정정]사업보고서 (2023.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H17",
+   "subtitle": "현대건설 계약별 표시 범위",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 69,
+   "num_density": 17.4,
+   "identifiers": 6,
+   "identifier_list": [
+    "2024-03-29",
+    "20240329003141",
+    "2025-10-17",
+    "20251017000151",
+    "[기재정정]사업보고서 (2023.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H18",
+   "subtitle": "셀트리온 EPS 분모 변화",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 56,
+   "num_density": 14.3,
+   "identifiers": 3,
+   "identifier_list": [
+    "2025-03-17",
+    "20250317000929",
+    "사업보고서 (2024.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H18",
+   "subtitle": "셀트리온 EPS 분모 변화",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 56,
+   "num_density": 14.3,
+   "identifiers": 3,
+   "identifier_list": [
+    "2025-03-17",
+    "20250317000929",
+    "사업보고서 (2024.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H18",
+   "subtitle": "셀트리온 EPS 분모 변화",
+   "has_subtitle": true,
+   "sentences": 6,
+   "words": 56,
+   "num_density": 14.3,
+   "identifiers": 3,
+   "identifier_list": [
+    "2025-03-17",
+    "20250317000929",
+    "사업보고서 (2024.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H19",
+   "subtitle": "POSCO홀딩스 관계기업 변동",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 45,
+   "num_density": 26.7,
+   "identifiers": 3,
+   "identifier_list": [
+    "2026-03-11",
+    "20260311004517",
+    "사업보고서 (2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 25.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H19",
+   "subtitle": "POSCO홀딩스 관계기업 변동",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 45,
+   "num_density": 26.7,
+   "identifiers": 3,
+   "identifier_list": [
+    "2026-03-11",
+    "20260311004517",
+    "사업보고서 (2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 25.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H19",
+   "subtitle": "POSCO홀딩스 관계기업 변동",
+   "has_subtitle": true,
+   "sentences": 4,
+   "words": 45,
+   "num_density": 26.7,
+   "identifiers": 3,
+   "identifier_list": [
+    "2026-03-11",
+    "20260311004517",
+    "사업보고서 (2025.12)"
+   ],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 25.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H20",
+   "subtitle": "조회 대상 확인 필요",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 30,
+   "num_density": 0.0,
+   "identifiers": 0,
+   "identifier_list": [],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H20",
+   "subtitle": "조회 대상 확인 필요",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 30,
+   "num_density": 0.0,
+   "identifiers": 0,
+   "identifier_list": [],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  },
+  {
+   "qid": "H20",
+   "subtitle": "조회 대상 확인 필요",
+   "has_subtitle": false,
+   "sentences": 3,
+   "words": 30,
+   "num_density": 0.0,
+   "identifiers": 0,
+   "identifier_list": [],
+   "has_rejection": false,
+   "fabricated_rejection": [],
+   "result_ratio": 0.0,
+   "forward_hits": 0,
+   "over_length": false
+  }
+ ]
+}
